@@ -1,0 +1,35 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/zhongsy/devel/include/**",
+                "/opt/ros/kinetic/include/**",
+                "/home/zhongsy/src/cotek_action/include/**",
+                "/home/zhongsy/src/cotek_avoid/include/**",
+                "/home/zhongsy/src/cotek_calibration/include/**",
+                "/home/zhongsy/src/cotek_common/include/**",
+                "/home/zhongsy/src/cotek_communicate/include/**",
+                "/home/zhongsy/src/cotek_diagnostic/include/**",
+                "/home/zhongsy/src/cotek_embedded/include/**",
+                "/home/zhongsy/src/cotek_localizer/include/**",
+                "/home/zhongsy/src/cotek_msgs/include/**",
+                "/home/zhongsy/src/cotek_navigation/include/**",
+                "/home/zhongsy/src/cotek_reflector_localizer/include/**",
+                "/home/zhongsy/src/cotek_teleop/include/**",
+                "/home/zhongsy/src/decision_maker/include/**",
+                "/home/zhongsy/src/fake_server/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
