@@ -22,7 +22,7 @@ int main()
     //rs2::decimation_filter dec_filter;
     rs2::spatial_filter spat_filter(0.4f,4.0f,2.0f,0);
     rs2::threshold_filter thd_filter(0.15f,4.0f);
-    rs2::hole_filling_filter hole_filter(2);
+    rs2::hole_filling_filter hole_filter(0);
     rs2::colorizer colorizered;
 
     //dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE,3);
@@ -63,7 +63,7 @@ int main()
         latest=depth;
         depth.convertTo(depth,CV_8UC1);
         applyColorMap(depth,out,COLORMAP_JET);
-         imshow("depthcolor",depth);
+         imshow("depthcolor",out);
          waitKey(1);
 
         diff.convertTo(diff,CV_8UC1);
@@ -77,8 +77,8 @@ int main()
         filtered=thd_filter.process(filtered);
         filtered=hole_filter.process(filtered);
         Mat fitered(Size(width,height),CV_16UC1,(void*)filtered.get_data(),Mat::AUTO_STEP);
-        imshow("filtered",fitered);
-        waitKey(1);
+        // imshow("filtered",fitered);
+        // waitKey(1);
         fitered.convertTo(fitered,CV_8UC1);
         applyColorMap(fitered,fitered,cv::COLORMAP_JET);
         imshow("filtercolor",fitered);
