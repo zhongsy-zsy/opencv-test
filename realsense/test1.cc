@@ -40,7 +40,7 @@ morphologyEx(dep, out, MORPH_OPEN, element);
 //dilate(dhc, out, element);
  
 //显示效果图
-imshow("opencv", out);
+imshow("kaicaozuo", out);
 Mat src_copy = dep.clone();
 Mat threshold_output;
 vector<vector<Point> > contours;
