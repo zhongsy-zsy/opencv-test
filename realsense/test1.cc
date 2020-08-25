@@ -32,9 +32,9 @@ for (int i = 0; i<nr; i++)
     }
 }
 
-//滤出地面
+//滤出地面，也可以把边界滤除去
 int deltap=20;
-int heig=1000;
+int heig=2000;
 float z=1;
 for(int i=0;i<nr;i++)
 {
@@ -54,9 +54,10 @@ vector<vector<Point> > find_obstacle(Mat &depth, int thresh = 20, int max_thresh
 {
 Mat dep;
 depth.copyTo(dep);
-mask_depth(dep, depth, 1000);
+mask_depth(dep, depth, 2500);
+//cout<<dep<<endl;
+dep.convertTo(dep, CV_8UC1,1.0/10);
 cout<<dep<<endl;
-dep.convertTo(dep, CV_8UC1, 1.0 / 16);
 //imshow("color", color);
 imshow("depth", dep);
 //cv::medianBlur(dep,dep,9);
@@ -73,7 +74,8 @@ Mat threshold_output;
 vector<vector<Point> > contours;
 vector<Vec4i> hierarchy;
 RNG rng(12345);
-/// 对图像进行二值化
+
+/// 阈值分割
 threshold(dep, threshold_output, thresh, 255, CV_THRESH_BINARY);
 //mask_depth(src, threshold_output);
 /// 寻找轮廓
@@ -174,7 +176,7 @@ waitKey(1);
 
 
 vector<vector<Point> > result;
-result = find_obstacle(depth, 20, 255, 500);
+result = find_obstacle(depth, 30, 255, 500);
 imshow("color",color);
 waitKey(1);
 imshow("depth",depth);
