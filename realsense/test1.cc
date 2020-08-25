@@ -3,6 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include<librealsense2/rs.hpp>
 #include "opencv2/imgproc/imgproc.hpp"
+#include<math.h>
  
 using namespace std;
 using namespace cv;
@@ -13,34 +14,60 @@ using namespace cv;
 
 void mask_depth(Mat &image,Mat& twith,int throld=1000)
 {
+//这里也可以利用域值滤波
 int nr = image.rows; // number of rows 
 int nc = image.cols; // number of columns 
 for (int i = 0; i<nr; i++)
 {
  
-for (int j = 0; j<nc; j++) {
-if (image.at<ushort>(i, j)>throld)
-image.at<ushort>(i, j) = 0;
+    for (int j = 0; j<nc; j++) 
+    {
+        // if(j<10||j>800||i<10||i>460)
+        // {
+        //     image.at<ushort>(i,j)=0;
+        //     continue;
+        // }
+        if (image.at<ushort>(i, j)>throld||image.at<ushort>(i,j)<12)
+        image.at<ushort>(i, j) = 0;
+    }
 }
+
+//滤出地面
+int deltap=20;
+int heig=1000;
+float z=1;
+for(int i=0;i<nr;i++)
+{
+    for(int j=0;j<nc;j++)
+    {
+        if(heig-image.at<ushort>(i,j)*z<deltap||heig-image.at<ushort>(i,j)*z<0)
+        {
+            image.at<ushort>(i,j)=0;
+        }
+    }
 }
- 
+
+
+
 }
 vector<vector<Point> > find_obstacle(Mat &depth, int thresh = 20, int max_thresh = 255, int area = 500)
 {
 Mat dep;
 depth.copyTo(dep);
-mask_depth(depth, dep, 1000);
+mask_depth(dep, depth, 1000);
+cout<<dep<<endl;
 dep.convertTo(dep, CV_8UC1, 1.0 / 16);
 //imshow("color", color);
 imshow("depth", dep);
-Mat element = getStructuringElement(MORPH_RECT, Size(15, 15));//核的大小可适当调整
-Mat out;
+//cv::medianBlur(dep,dep,9);
+Mat element = getStructuringElement(MORPH_RECT, Size(10, 10));//核的大小可适当调整
+//Mat out;
 //进行开操作
-morphologyEx(dep, out, MORPH_OPEN, element);
+morphologyEx(dep, dep, MORPH_OPEN, element);
 //dilate(dhc, out, element);
  
 //显示效果图
-imshow("kaicaozuo", out);
+imshow("kaicaozuo", dep);
 Mat src_copy = dep.clone();
 Mat threshold_output;
 vector<vector<Point> > contours;
@@ -60,12 +87,13 @@ for (int i = 0; i < contours.size(); i++)
 convexHull(Mat(contours[i]), hull[i], false);
  
 }
+
  
 /// 绘出轮廓及其凸包
 Mat drawing = Mat::zeros(threshold_output.size(), CV_8UC3);
 for (int i = 0; i< contours.size(); i++)
 {
-if (contourArea(contours[i]) < area)//面积小于area的凸包，可忽略
+if (contourArea(contours[i]) < area) //面积小于area的凸包，可忽略
 continue;
 result.push_back(hull[i]);
 Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));

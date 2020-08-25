@@ -1,5 +1,6 @@
 #include<opencv2/opencv.hpp>
 #include<librealsense2/rs.hpp>
+#include<time.h>
 
 using namespace std;
 using namespace cv;
@@ -9,6 +10,10 @@ using namespace cv;
 
 int main()
 {
+    //测试时间 
+    clock_t start,stop;
+    double duration;
+
     rs2::context ctx;
     //获取设备列表
     auto list=ctx.query_devices();
@@ -45,7 +50,9 @@ int main()
         frames=pipe.wait_for_frames();
 
         rs2::depth_frame depth_frame=frames.get_depth_frame();
+        rs2::frame  color_frame=frames.get_color_frame();
         Mat depth(Size(width,height),CV_16UC1,(void*)depth_frame.get_data(),Mat::AUTO_STEP);
+        Mat color(Size(width,height),CV_8UC3,(void*)color_frame.get_data(),Mat::AUTO_STEP);
         imshow("depth",depth);
         waitKey(1);
         Mat out;
@@ -58,7 +65,7 @@ int main()
         }
         //两张图片的差
         Mat diff=depth-latest;
-        std::cout<<"head"<<endl<<diff<<std::endl<<std::endl<<"tail"<<endl;
+        //std::cout<<"head"<<endl<<diff<<std::endl<<std::endl<<"tail"<<endl;
 
         latest=depth;
         depth.convertTo(depth,CV_8UC1);
@@ -104,14 +111,18 @@ int main()
         // imshow("shuangbian",out_s);
         // waitKey(1);
         // //分割
+        // start=clock();
         // Mat out_meanshift;
-        // pyrMeanShiftFiltering(out_z,out_meanshift,50,50,2);
+        // pyrMeanShiftFiltering(color,out_meanshift,50,50,2);
         // imshow("mena_shift",out_meanshift);
         // waitKey(1);
+        // stop=clock();
+        // duration=stop-start;
+        // cout<<"time: "<<duration<<std::endl;
 
-        // //背景差分
+        // // //背景差分
         // Mat out_diff;
-        // absdiff(depth,out_z,out_diff);
+        // absdiff(color,out_meanshift,out_diff);
         // imshow("diff",out_diff);
         // waitKey(1);
 
