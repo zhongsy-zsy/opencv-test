@@ -2,6 +2,7 @@
 #define _REALSENSE_H_
 
 #include<librealsense2/rs.hpp>
+#include<opencv2/opencv.hpp>
 
 #define width 848
 #define height 480 
@@ -18,12 +19,15 @@ private:
     rs2::threshold_filter thd_filter;
     rs2::hole_filling_filter hole_filter;
     rs2::colorizer colorizered; 
-    rs2::device_list dev_list;   
+    rs2::device_list dev_list;  
+    rs2::device dev; 
 
 public:
     realsense();
     ~realsense();
     void init();
+    cv::Mat get_depth();
+   
 };
 
 realsense::realsense()
@@ -38,6 +42,16 @@ realsense::~realsense()
 {
 }
 
+cv::Mat realsense::get_depth()
+{
+    frames=pipe.wait_for_frames();
+    rs2::depth_frame depth_frame=frames.get_depth_frame();
+    cv::Mat depth(cv::Size(width,height),CV_16UC1,(void*)depth_frame.get_data(),cv::Mat::AUTO_STEP);
+    cv::imshow("depth",depth);
+    cv::waitKey(1);    
+
+}
+
 void realsense::init()
 {
 
@@ -47,7 +61,7 @@ void realsense::init()
     if(dev_list.size()==0)
     throw std::runtime_error("No device detected.");
 
-    rs2::device dev=list.front();
+    dev=dev_list.front();
     rs2::frameset frames;
     rs2::pipeline pipe(ctx);
 

@@ -14,10 +14,10 @@ FIND_PACKAGE(realsense2 REQUIRED)
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( ${realsense2_INCLUDE_DIRS})
-include_directories(
-    ./realsense
-)
-add_executable(main thread.cc)
+# include_directories(
+#     #./realsense.h
+# )
+add_executable(main thread.cc )
 
 target_link_libraries( main ${OpenCV_LIBS} ${realsense2_LIBRARY} -lpthread -lm)
 
