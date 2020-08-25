@@ -22,7 +22,8 @@
                 "/home/zhongsy/src/cotek_teleop/include/**",
                 "/home/zhongsy/src/decision_maker/include/**",
                 "/home/zhongsy/src/fake_server/include/**",
-                "/usr/include/**"
+                "/usr/include/**",
+                "${workspaceFolder}/realsense"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",
