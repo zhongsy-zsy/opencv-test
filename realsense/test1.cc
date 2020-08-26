@@ -11,9 +11,30 @@ using namespace cv;
 #define Height 480 
 #define fps 30
 
-double caculate(cv::Mat depth,cv::Rect rect)
+double caculate(cv::Mat depth,cv::Rect rect,vector<double> &res)
 {
-    vector<cv::Point> point;
+    int thread=50;
+   //设置感兴趣区域
+   cv::Mat imageROI(depth,rect);
+   //方法一，把零点过滤
+   for(int i=0;i<imageROI.rows;i++)
+   {
+       for(int j=0;j<imageROI.cols;j++)
+       {
+           if(imageROI.at<ushort>(i,j)==0) imageROI.at<ushort>(i,j)=1000;
+       }
+   }   
+   //cout<<imageROI; 
+   imshow("ROI",imageROI);
+   waitKey(1);
+   double  mindiatance;
+   //直接输出最小距离
+   minMaxLoc(imageROI,&mindiatance,NULL,NULL,NULL);
+   //std::cout<<"最小距离"<<mindiatance<<std::endl; //因为感兴趣区域内会存在零点所以需要弄掉
+   res.push_back(mindiatance);
+
+
+
 
 }
 
@@ -117,7 +138,7 @@ imshow("depth", dep);
 Mat element = getStructuringElement(MORPH_RECT, Size(10, 10));//核的大小可适当调整
 //Mat out;
 //进行开操作
-morphologyEx(dep, dep, MORPH_OPEN, element);
+morphologyEx(dep, dep, MORPH_CLOSE, element);
 //dilate(dhc, out, element);
  
 //显示效果图
@@ -156,26 +177,25 @@ drawContours(drawing, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point());
 drawContours(drawing, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point());
 
 
-//获得轮廓的角度
-        Point2f* pos = new Point2f();
-        double dOrient =  getOrientation(contours[i], *pos,drawing);
-        //转换轮廓,并获得极值
-        for (size_t j = 0;j<contours[i].size();j++)
-            contours[i][j] = GetPointAfterRotate(contours[i][j],(Point)*pos,dOrient);
-        Rect rect = boundingRect(contours[i]);//轮廓最小外接矩形
-        RotatedRect rotateRect = RotatedRect((Point2f)rect.tl(),Point2f(rect.br().x,rect.tl().y),(Point2f)rect.br());
-        //将角度转换回去并绘图
-        Point2f rect_points[4];
-        rotateRect.points( rect_points ); 
-        for (size_t j = 0;j<4;j++)
-            rect_points[j] = GetPointAfterRotate((Point)rect_points[j],(Point)*pos,-dOrient);
-        for( size_t j = 0; j < 4; j++ )
-            line( drawing, rect_points[j], rect_points[(j+1)%4],Scalar(255,255,0),2);
-        //得出结果    
-        char cbuf[255];
-        double fshort = std::min(rect.width,rect.height);
-        double flong  = std::max(rect.width,rect.height);
-        cout<<"第%d个轮廓,长度%.2f,宽度%.2f像素"<<i<<flong<<fshort;
+// //获得轮廓的角度
+//         Point2f* pos = new Point2f();
+//         double dOrient =  getOrientation(contours[i], *pos,drawing);
+//         //转换轮廓,并获得极值
+//         for (size_t j = 0;j<contours[i].size();j++)
+//             contours[i][j] = GetPointAfterRotate(contours[i][j],(Point)*pos,dOrient);
+//         Rect rect = boundingRect(contours[i]);//轮廓最小外接矩形
+//         RotatedRect rotateRect = RotatedRect((Point2f)rect.tl(),Point2f(rect.br().x,rect.tl().y),(Point2f)rect.br());
+//         //将角度转换回去并绘图
+//         Point2f rect_points[4];
+//         rotateRect.points( rect_points ); //求出矩形的四个顶点
+//         for (size_t j = 0;j<4;j++)
+//             rect_points[j] = GetPointAfterRotate((Point)rect_points[j],(Point)*pos,-dOrient);
+//         for( size_t j = 0; j < 4; j++ )
+//             line( drawing, rect_points[j], rect_points[(j+1)%4],Scalar(255,255,0),2);
+//         //得出结果    
+//         double fshort = std::min(rect.width,rect.height);
+//         double flong  = std::max(rect.width,rect.height);
+//         cout<<"第%d个轮廓,长度%.2f,宽度%.2f像素"<<i<<flong<<fshort;
 
 }
 imshow("contours", drawing);
@@ -225,6 +245,8 @@ rs2::frame color_frame = frames.get_color_frame();
 rs2::depth_frame depth_frame = frames.get_depth_frame();
 Mat color(Size(Width, Height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
 Mat depth(Size(Width,Height), CV_16U, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
+Mat depth1=depth.clone();
+
 
 // if(flag==0) 
 // {
@@ -260,6 +282,7 @@ if(result.size()<1)
 }
 else
 {
+    //这边也可以试一下minarearect
     int i=1;
     for(int i=0;i<result.size();i++)
     {
@@ -274,10 +297,17 @@ else
     }
 }
 //cout<<depth;
+vector<double> res;
+
 for(int i=0;i<ve_rect.size();i++)
 {
-    cout<<"object  "<<i<<":"<<ve_rect[i].x<<","<<ve_rect[i].y<<endl;
-    double distance=caculate(depth,ve_rect[i]);
+    //cout<<"object  "<<i<<":"<<ve_rect[i].x<<","<<ve_rect[i].y<<endl;
+    double distance=caculate(depth1,ve_rect[i],res);
+}
+if(res.size()>0)
+{
+double res1=*min_element(res.begin(),res.end());
+std::cout<<"min"<<res1 <<endl;
 }
 imshow("color",color);
 waitKey(1);
