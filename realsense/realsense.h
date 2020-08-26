@@ -52,13 +52,15 @@ realsense::~realsense()
 
 void realsense::get_depth()
 {
-    frames=pipe.wait_for_frames();
-    rs2::depth_frame depth_frame=frames.get_depth_frame();
-    cv::Mat depth(cv::Size(width,height),CV_16UC1,(void*)depth_frame.get_data(),cv::Mat::AUTO_STEP);
-    cv::imshow("depth",depth);
-    cv::waitKey(1);
-    depth.copyTo(depth_data);    
-
+    while(1)
+    {
+         frames=pipe.wait_for_frames();
+         rs2::depth_frame depth_frame=frames.get_depth_frame();
+         cv::Mat depth(cv::Size(width,height),CV_16UC1,(void*)depth_frame.get_data(),cv::Mat::AUTO_STEP);
+         cv::imshow("depth",depth);
+         cv::waitKey(1);
+         depth.copyTo(depth_data);    
+    }
 }
 
 void realsense::init()
