@@ -10,7 +10,7 @@ using namespace cv;
 
 
 
-cv::Mat& norm_image(cv::Mat& src)
+void norm_image(cv::Mat& src)
 {
     double max_val,min_val;
     int nr=src.rows;
@@ -24,7 +24,7 @@ cv::Mat& norm_image(cv::Mat& src)
 
         }
     }
-    return src;
+    //return src;
 }
 int main() 
 {
@@ -73,7 +73,7 @@ int main()
         Mat color(Size(width,height),CV_8UC3,(void*)color_frame.get_data(),Mat::AUTO_STEP);
         imshow("depth",depth);
         waitKey(1);
-        depth=norm_image(depth);
+        norm_image(depth);
         imshow("norm",depth);
         cout<<depth<<endl;;
         waitKey(1);
