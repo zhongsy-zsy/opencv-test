@@ -14,7 +14,7 @@ FIND_PACKAGE(realsense2 REQUIRED)
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( ${realsense2_INCLUDE_DIRS})
-add_executable(main test1.cc)
+add_executable(main filter.cc)
 
 target_link_libraries( main ${OpenCV_LIBS} ${realsense2_LIBRARY} -lpthread -lm)
 

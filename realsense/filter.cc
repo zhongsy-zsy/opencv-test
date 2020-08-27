@@ -8,7 +8,25 @@ using namespace cv;
 #define height 480 
 #define fps 30
 
-int main()
+
+
+cv::Mat& norm_image(cv::Mat& src)
+{
+    double max_val,min_val;
+    int nr=src.rows;
+    int nc=src.cols;
+    cv::minMaxLoc(src,&min_val,&max_val,NULL,NULL);
+    for(int i=0;i<nr;i++)
+    {
+        for(int j=0;j<nc;j++)
+        {
+            src.at<ushort>(i,j)=((src.at<ushort>(i,j)-min_val)/(max_val-min_val))*255;
+
+        }
+    }
+    return src;
+}
+int main() 
 {
     //测试时间 
     clock_t start,stop;
@@ -55,78 +73,85 @@ int main()
         Mat color(Size(width,height),CV_8UC3,(void*)color_frame.get_data(),Mat::AUTO_STEP);
         imshow("depth",depth);
         waitKey(1);
-        Mat out;
-        
-        if(flag==0) 
-        {
-        latest=depth;
-        flag=1;
-        continue;
-        }
-        //两张图片的差
-        Mat diff=depth-latest;
-        //std::cout<<"head"<<endl<<diff<<std::endl<<std::endl<<"tail"<<endl;
-
-        latest=depth;
-        depth.convertTo(depth,CV_8UC1);
-        applyColorMap(depth,out,COLORMAP_JET);
-         imshow("depthcolor",out);
-         waitKey(1);
-
-        diff.convertTo(diff,CV_8UC1);
-        applyColorMap(diff,diff,cv::COLORMAP_JET);
-        imshow("diff",diff);
+        depth=norm_image(depth);
+        imshow("norm",depth);
+        cout<<depth<<endl;;
         waitKey(1);
-        //滤波处理
-        rs2::frame filtered=depth_frame;
-        //filtered=dec_filter.process(filtered);
-        filtered=spat_filter.process(filtered);
-        filtered=thd_filter.process(filtered);
-        filtered=hole_filter.process(filtered);
-        Mat fitered(Size(width,height),CV_16UC1,(void*)filtered.get_data(),Mat::AUTO_STEP);
-        // imshow("filtered",fitered);
-        // waitKey(1);
-        fitered.convertTo(fitered,CV_8UC1);
-        applyColorMap(fitered,fitered,cv::COLORMAP_JET);
-        imshow("filtercolor",fitered);
 
-        // Mat draw=depth.clone();
-        // Mat draw1=Mat(draw.rows,draw.cols,CV_8UC3);
-        // cvtColor(draw,draw1,CV_GRAY2BGR);
-        // cv::circle(draw1,Point(width/2,height/2),3,cv::Scalar(0,0,255));
-        //cv::Mat depth_copy=depth.clone();
-        // cv::Mat out_z;
-        //Mat tmp;
-        // depth.convertTo(tmp,CV_8UC1);
-        // applyColorMap(tmp,depth,cv::COLORMAP_HOT);
-        // imshow("raw",depth);
-        // waitKey(1);
+
+
+        // Mat out;
+        
+        // if(flag==0) 
+        // {
+        // latest=depth;
+        // flag=1;
+        // continue;
+        // }
+        // //两张图片的差
+        // Mat diff=depth-latest;
+        // //std::cout<<"head"<<endl<<diff<<std::endl<<std::endl<<"tail"<<endl;
+
+        // latest=depth;
         // depth.convertTo(depth,CV_8UC1);
-        // cv::medianBlur(depth,out_z,3);
-        // imshow("medium",out_z);
-        // waitKey(1);
-        // Mat out_s;
-        // //depth_copy.convertTo(depth_copy,CV_8UC1);
-        // bilateralFilter(depth,out_s,25,25*2,25/2);
-        // imshow("shuangbian",out_s);
-        // waitKey(1);
-        // //分割
-        // start=clock();
-        // Mat out_meanshift;
-        // pyrMeanShiftFiltering(color,out_meanshift,50,50,2);
-        // imshow("mena_shift",out_meanshift);
-        // waitKey(1);
-        // stop=clock();
-        // duration=stop-start;
-        // cout<<"time: "<<duration<<std::endl;
+        // applyColorMap(depth,out,COLORMAP_JET);
+        //  imshow("depthcolor",out);
+        //  waitKey(1);
 
-        // // //背景差分
-        // Mat out_diff;
-        // absdiff(color,out_meanshift,out_diff);
-        // imshow("diff",out_diff);
+        // diff.convertTo(diff,CV_8UC1);
+        // applyColorMap(diff,diff,cv::COLORMAP_JET);
+        // imshow("diff",diff);
         // waitKey(1);
+        // //滤波处理
+        // rs2::frame filtered=depth_frame;
+        // //filtered=dec_filter.process(filtered);
+        // filtered=spat_filter.process(filtered);
+        // filtered=thd_filter.process(filtered);
+        // filtered=hole_filter.process(filtered);
+        // Mat fitered(Size(width,height),CV_16UC1,(void*)filtered.get_data(),Mat::AUTO_STEP);
+        // // imshow("filtered",fitered);
+        // // waitKey(1);
+        // fitered.convertTo(fitered,CV_8UC1);
+        // applyColorMap(fitered,fitered,cv::COLORMAP_JET);
+        // imshow("filtercolor",fitered);
 
-        // float center=depth_frame.get_distance(width/2,height/2);
-        // cout<<"center"<<center<<endl;
+        // // Mat draw=depth.clone();
+        // // Mat draw1=Mat(draw.rows,draw.cols,CV_8UC3);
+        // // cvtColor(draw,draw1,CV_GRAY2BGR);
+        // // cv::circle(draw1,Point(width/2,height/2),3,cv::Scalar(0,0,255));
+        // //cv::Mat depth_copy=depth.clone();
+        // // cv::Mat out_z;
+        // //Mat tmp;
+        // // depth.convertTo(tmp,CV_8UC1);
+        // // applyColorMap(tmp,depth,cv::COLORMAP_HOT);
+        // // imshow("raw",depth);
+        // // waitKey(1);
+        // // depth.convertTo(depth,CV_8UC1);
+        // // cv::medianBlur(depth,out_z,3);
+        // // imshow("medium",out_z);
+        // // waitKey(1);
+        // // Mat out_s;
+        // // //depth_copy.convertTo(depth_copy,CV_8UC1);
+        // // bilateralFilter(depth,out_s,25,25*2,25/2);
+        // // imshow("shuangbian",out_s);
+        // // waitKey(1);
+        // // //分割
+        // // start=clock();
+        // // Mat out_meanshift;
+        // // pyrMeanShiftFiltering(color,out_meanshift,50,50,2);
+        // // imshow("mena_shift",out_meanshift);
+        // // waitKey(1);
+        // // stop=clock();
+        // // duration=stop-start;
+        // // cout<<"time: "<<duration<<std::endl;
+
+        // // // //背景差分
+        // // Mat out_diff;
+        // // absdiff(color,out_meanshift,out_diff);
+        // // imshow("diff",out_diff);
+        // // waitKey(1);
+
+        // // float center=depth_frame.get_distance(width/2,height/2);
+        // // cout<<"center"<<center<<endl;
     }   
 }

@@ -33,9 +33,6 @@ double caculate(cv::Mat depth,cv::Rect rect,vector<double> &res)
    //std::cout<<"最小距离"<<mindiatance<<std::endl; //因为感兴趣区域内会存在零点所以需要弄掉
    res.push_back(mindiatance);
 
-
-
-
 }
 
 
@@ -277,8 +274,8 @@ vector<cv::Rect> ve_rect;
 vector<vector<Point> > result;
 result = find_obstacle(depth, 30, 255, 500);
 if(result.size()<1) 
-{
-
+{   
+    
 }
 else
 {
