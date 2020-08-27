@@ -11,6 +11,23 @@ using namespace cv;
 #define Height 480 
 #define fps 30
 
+void norm_image(cv::Mat& src)
+{
+    double max_val,min_val;
+    int nr=src.rows;
+    int nc=src.cols;
+    cv::minMaxLoc(src,&min_val,&max_val,NULL,NULL);
+    for(int i=0;i<nr;i++)
+    {
+        for(int j=0;j<nc;j++)
+        {
+            src.at<ushort>(i,j)=((src.at<ushort>(i,j)-min_val)/(max_val-min_val))*255;
+
+        }
+    }
+    //return src;
+}
+
 double caculate(cv::Mat depth,cv::Rect rect,vector<double> &res)
 {
     int thread=50;
@@ -104,7 +121,7 @@ for (int i = 0; i<nr; i++)
 
 //滤出地面，也可以把边界滤除去
 int deltap=20;
-int heig=2000;
+int heig=4000;
 float z=1;
 for(int i=0;i<nr;i++)
 {
@@ -124,15 +141,29 @@ vector<vector<Point> > find_obstacle(Mat &depth, int thresh = 20, int max_thresh
 {
 Mat dep;
 depth.copyTo(dep);
-mask_depth(depth,depth);
-mask_depth(dep, depth, 1000);
+// mask_depth(depth,depth);
+mask_depth(dep, depth, 4000);
 //cout<<dep<<endl;
-dep.convertTo(dep, CV_8UC1,1.0/1);
+norm_image(dep);
+int nr=dep.rows;
+int nc=dep.cols;
+for(int i=0;i<nr;i++)
+{
+    for(int j=0;j<nc;j++)
+    {
+        if(dep.at<ushort>(i,j)==0)
+        {
+            dep.at<ushort>(i,j)=255;
+        }
+    }
+}
+
+dep.convertTo(dep, CV_8UC1);
 // cout<<dep<<endl;
 //imshow("color", color);
 imshow("depth", dep);
 //cv::medianBlur(dep,dep,9);
-Mat element = getStructuringElement(MORPH_RECT, Size(10, 10));//核的大小可适当调整
+Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));//核的大小可适当调整
 //Mat out;
 //进行开操作
 morphologyEx(dep, dep, MORPH_CLOSE, element);
