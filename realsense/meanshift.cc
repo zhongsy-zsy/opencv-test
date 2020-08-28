@@ -3,6 +3,7 @@
 // include OpenCV header file
 #include <opencv2/opencv.hpp>
 #include<time.h>
+#include<iostream>
 
 using namespace std;
 using namespace cv;
@@ -22,7 +23,7 @@ void norm_image(cv::Mat& src)
     {
         for(int j=0;j<nc;j++)
         {
-            src.at<ushort>(i,j)=((src.at<ushort>(i,j)-min_val)/(max_val-min_val))*255;
+            src.at<uchar>(i,j)=((src.at<uchar>(i,j)-min_val)/(max_val-min_val))*255;
 
         }
     }
@@ -34,17 +35,55 @@ void quit_black_block(cv::Mat& image)
 {
     int nr=image.rows;
     int nc=image.cols;
+
     for(int i=0;i<nr;i++)
     {
         for(int j=0;j<nc;j++)
         {
-            if(image.at<ushort>(i,j)==0)
+            if(image.at<uchar>(i,j)==0)
             {
-                image.at<ushort>(i,j)=255;
+                image.at<uchar>(i,j)=255;
             }
         }
     }
 }
+
+void mask_depth(Mat &image,Mat& twith,int throld=1000)
+{
+//这里也可以利用域值滤波
+int nr = image.rows; // number of rows 
+int nc = image.cols; // number of columns 
+for (int i = 0; i<nr; i++)
+{
+ 
+    for (int j = 0; j<nc; j++) 
+    {
+        // if(j<10||j>800||i<10||i>460)
+        // {
+        //     image.at<ushort>(i,j)=0;
+        //     continue;
+        // }
+        if (image.at<ushort>(i, j)>throld||image.at<ushort>(i,j)<12)
+        image.at<ushort>(i, j) = 0;
+    }
+}
+
+//滤出地面，也可以把边界滤除去
+int deltap=20;
+int heig=4000;
+float z=1;
+for(int i=0;i<nr;i++)
+{
+    for(int j=0;j<nc;j++)
+    {
+        if(heig-image.at<ushort>(i,j)*z<deltap||heig-image.at<ushort>(i,j)*z<0)
+        {
+            image.at<ushort>(i,j)=0;
+        }
+    }
+}
+}
+
 
 int main(int argc, char** argv) try
 {
@@ -101,30 +140,32 @@ int main(int argc, char** argv) try
         
         //Get each frame
         rs2::frame color_frame = frames.get_color_frame();
-        const rs2::depth_frame depth_frame = frames.get_depth_frame();
-        rs2::video_frame ir_frame_left = frames.get_infrared_frame(1);
-        rs2::video_frame ir_frame_right = frames.get_infrared_frame(2);
+        rs2::depth_frame depth_frame = frames.get_depth_frame();
+        // rs2::video_frame ir_frame_left = frames.get_infrared_frame(1);
+        // rs2::video_frame ir_frame_right = frames.get_infrared_frame(2);
         
         
         // Creating OpenCV Matrix from a color image
         Mat color(Size(width, height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
-        Mat pic_right(Size(width,height), CV_8UC1, (void*)ir_frame_right.get_data());
-        Mat pic_left(Size(width,height), CV_8UC1, (void*)ir_frame_left.get_data());
-        Mat pic_depth(Size(width,height), CV_16U, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
-        cv::circle(color,Point(width/2,height/2),4,cv::Scalar(0,0,255));
-        float center=depth_frame.get_distance(width/2,height/2);
-        std::cout<<"center"<<center<<std::endl;
-        // Display in a GUI
-        stop=clock();
-        duration=(double)(stop-start)/CLOCKS_PER_SEC;
-        cout<<"time is:"<<duration<<endl;
-        namedWindow("Display Image", WINDOW_AUTOSIZE );
-        imshow("Display Image", color);
+        Mat depth(Size(width,height), CV_16UC1, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
+        cv::Mat depth_copy;
+        mask_depth(depth,depth,4000);
+        // norm_image(depth);
+        depth.convertTo(depth,CV_8UC1,0.63);
+        imshow("depth",depth);
         waitKey(1);
-        imshow("Display depth", pic_depth*15);
-        waitKey(1);
-        
+        // std::cout<<depth.rows<<"  "<<depth.cols<<"  "<<depth.channels()<<endl;
+        depth.copyTo(depth_copy);
 
+        quit_black_block(depth_copy); 
+        
+        imshow("quit_black",depth_copy);
+    
+        // waitKey(1);
+        // cvtColor(depth_copy,depth_copy,CV_GRAY2RGB);
+        // pyrMeanShiftFiltering(depth_copy,depth_copy,50,50,3);
+        // imshow("meahshift",depth_copy);
+        // waitKey(1);
     }
     return 0;
 }
