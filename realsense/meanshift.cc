@@ -71,6 +71,26 @@ void quit_black_block(cv::Mat& image)
     }
 }
 
+void quit_landnoise(cv::Mat &image)
+{
+//滤出地面，也可以把边界滤除去
+int nr=image.rows;
+int nc=image.cols;
+int deltap=50;
+int heig=2000;
+float z=1;
+for(int i=0;i<nr;i++)
+    {
+    for(int j=0;j<nc;j++)
+        {
+            if(heig-image.at<ushort>(i,j)*z<deltap)
+            {   
+                image.at<ushort>(i,j)=0;
+            }
+        }
+    }
+}
+
 void mask_depth(Mat &image,Mat& twith,int throld=1000)
 {
     //这里也可以利用域值滤波
@@ -90,27 +110,11 @@ for (int i = 0; i<nr; i++)
         image.at<ushort>(i, j) = 0;
     }
 }
+
+    quit_landnoise(image);
 }
 
-void quit_landnoise(cv::Mat &image)
-{
-//滤出地面，也可以把边界滤除去
-int nr=image.rows;
-int nc=image.cols;
-int deltap=60;
-int heig=2000;
-float z=1;
-for(int i=0;i<nr;i++)
-    {
-    for(int j=0;j<nc;j++)
-        {
-            if(heig-image.at<ushort>(i,j)*z<deltap||heig-image.at<ushort>(i,j)*z<0)
-            {   
-                image.at<ushort>(i,j)=0;
-            }
-        }
-    }
-}
+
 
 
 vector<vector<Point> > find_obstacle(Mat &dep, int thresh = 20, int max_thresh = 255, int area = 500)
@@ -205,12 +209,13 @@ int main(int argc, char** argv) try
         Mat depth_raw(Size(width,height), CV_16UC1, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
         cv::Mat depth_copy;
         cv::Mat depth;
+        imshow("depth_raw",depth_raw);
+        waitKey(1);
         depth_raw.copyTo(depth);
         mask_depth(depth,depth,2000);
         // norm_image(depth);
         depth.convertTo(depth,CV_8UC1,0.1275);
-        imshow("depth",depth);
-        waitKey(1);
+        
         // std::cout<<depth.rows<<"  "<<depth.cols<<"  "<<depth.channels()<<endl;
         depth.copyTo(depth_copy);
         
