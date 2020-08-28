@@ -12,6 +12,29 @@ using namespace cv;
 #define height 480 
 #define fps 30
 
+double caculate(cv::Mat depth,cv::Rect rect,vector<double> &res)
+{
+    int thread=50;
+   //设置感兴趣区域
+   cv::Mat imageROI(depth,rect);
+   //方法一，把零点过滤
+   for(int i=0;i<imageROI.rows;i++)
+   {
+       for(int j=0;j<imageROI.cols;j++)
+       {
+           if(imageROI.at<ushort>(i,j)==0) imageROI.at<ushort>(i,j)=1000;
+       }
+   }   
+   //cout<<imageROI; 
+   imshow("ROI",imageROI);
+   waitKey(1);
+   double  mindiatance;
+   //直接输出最小距离
+   minMaxLoc(imageROI,&mindiatance,NULL,NULL,NULL);
+   //std::cout<<"最小距离"<<mindiatance<<std::endl; //因为感兴趣区域内会存在零点所以需要弄掉
+   res.push_back(mindiatance);
+
+}
 
 void norm_image(cv::Mat& src)
 {
@@ -63,26 +86,71 @@ for (int i = 0; i<nr; i++)
         //     image.at<ushort>(i,j)=0;
         //     continue;
         // }
-        if (image.at<ushort>(i, j)>throld||image.at<ushort>(i,j)<12)
-        image.at<ushort>(i, j) = 0;
+        if (image.at<uchar>(i, j)>throld||image.at<uchar>(i,j)<12)
+        image.at<uchar>(i, j) = 0;
     }
 }
 
 //滤出地面，也可以把边界滤除去
-int deltap=20;
-int heig=4000;
+int deltap=30;
+int heig=2000;
 float z=1;
 for(int i=0;i<nr;i++)
 {
     for(int j=0;j<nc;j++)
     {
-        if(heig-image.at<ushort>(i,j)*z<deltap||heig-image.at<ushort>(i,j)*z<0)
+        if(heig-image.at<uchar>(i,j)*z<deltap||heig-image.at<uchar>(i,j)*z<0)
         {
-            image.at<ushort>(i,j)=0;
+            image.at<uchar>(i,j)=0;
         }
     }
 }
 }
+
+
+vector<vector<Point> > find_obstacle(Mat &dep, int thresh = 20, int max_thresh = 255, int area = 500)
+{
+
+    Mat threshold_output;
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    RNG rng(12345);
+    cout<<dep<<endl;
+
+    /// 阈值分割
+    threshold(dep, threshold_output, thresh, 255, CV_THRESH_BINARY);
+    //mask_depth(src, threshold_output);
+    /// 寻找轮廓
+    findContours(threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+    
+    /// 对每个轮廓计算其凸包
+    vector<vector<Point> >hull(contours.size());
+    vector<vector<Point> > result;
+    for (int i = 0; i < contours.size(); i++)
+    {
+    convexHull(Mat(contours[i]), hull[i], false);
+    
+    }
+
+    
+    /// 绘出轮廓及其凸包
+    Mat drawing = Mat::zeros(threshold_output.size(), CV_8UC3);
+    for (int i = 0; i< contours.size(); i++)
+    {
+        if (contourArea(contours[i]) < area) //面积小于area的凸包，可忽略
+        continue;
+        result.push_back(hull[i]);
+        Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+        drawContours(drawing, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point());
+        drawContours(drawing, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point());
+
+
+    }
+        imshow("contours", drawing);
+
+        return result;
+}
+
 
 
 int main(int argc, char** argv) try
@@ -103,10 +171,10 @@ int main(int argc, char** argv) try
     //Add desired streams to configuration
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);//向配置添加所需的流
     cfg.enable_stream(RS2_STREAM_DEPTH, width, height, RS2_FORMAT_Z16,fps);
-    cfg.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, fps);
-	cfg.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, fps);
-    cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
-    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
+    // cfg.enable_stream(RS2_STREAM_INFRARED, 1, width, height, RS2_FORMAT_Y8, fps);
+	// cfg.enable_stream(RS2_STREAM_INFRARED, 2, width, height, RS2_FORMAT_Y8, fps);
+    // cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
+    // cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
    
     // get depth scale 
     // float depth_scale = get_depth_scale(profile.get_device());
@@ -141,17 +209,16 @@ int main(int argc, char** argv) try
         //Get each frame
         rs2::frame color_frame = frames.get_color_frame();
         rs2::depth_frame depth_frame = frames.get_depth_frame();
-        // rs2::video_frame ir_frame_left = frames.get_infrared_frame(1);
-        // rs2::video_frame ir_frame_right = frames.get_infrared_frame(2);
+
         
         
         // Creating OpenCV Matrix from a color image
         Mat color(Size(width, height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         Mat depth(Size(width,height), CV_16UC1, (void*)depth_frame.get_data(), Mat::AUTO_STEP);
         cv::Mat depth_copy;
-        mask_depth(depth,depth,4000);
+        mask_depth(depth,depth,2000);
         // norm_image(depth);
-        depth.convertTo(depth,CV_8UC1,0.0637);
+        depth.convertTo(depth,CV_8UC1,0.1275);
         imshow("depth",depth);
         waitKey(1);
         // std::cout<<depth.rows<<"  "<<depth.cols<<"  "<<depth.channels()<<endl;
@@ -179,17 +246,59 @@ int main(int argc, char** argv) try
         //dilate(dhc, out, element);
 
         // 显示效果图
-         imshow("bicaozuo", depth_copy);
-
-        // quit_black_block(depth_copy); 
+        imshow("bicaozuo", depth_copy);
+        // vector<cv::Rect> ve_rect;
+        // vector<vector<Point> > result;
+        // result = find_obstacle(depth_copy, 30, 255, 500);
+        // if(result.size()<1) 
+        // {   
         
-        // imshow("quit_black",depth_copy);
+        // }
+        // else
+        // {
+        //     //这边也可以试一下minarearect
+        //     int i=1;
+        //     for(int i=0;i<result.size();i++)
+        //     {
+        //         cv::Rect rect;
+        //         rect=boundingRect(result[i]);
+        //         ve_rect.push_back(rect);
+        //         Mat drawing = Mat::zeros(480,848, CV_8UC3);
+        //         cv::rectangle(drawing,rect.tl(),rect.br(),Scalar(0,0,255));
+        //         imshow("kuang",drawing);
+        //         waitKey(1);
+    
+        //     }
+        // }
+        // //cout<<depth;
+        // vector<double> res;
+    
+        // for(int i=0;i<ve_rect.size();i++)
+        // {
+        //     //cout<<"object  "<<i<<":"<<ve_rect[i].x<<","<<ve_rect[i].y<<endl;
+        //     double distance=caculate(depth_copy,ve_rect[i],res);
+        // }
+        // if(res.size()>0)
+        // {
+        // double res1=*min_element(res.begin(),res.end());
+        // std::cout<<"min"<<res1 <<endl;
+        // }
+    
 
-        // waitKey(1);
-        // cvtColor(depth_copy,depth_copy,CV_GRAY2RGB);
-        // pyrMeanShiftFiltering(depth_copy,depth_copy,50,50,3);
-        // imshow("meahshift",depth_copy);
-        // waitKey(1);
+            // 阈值分割
+            // cv::Mat iamge_mask;
+            // threshold(depth_copy,iamge_mask,200,255,CV_THRESH_BINARY);
+            // cv::imshow("mask",iamge_mask);
+
+            // quit_black_block(depth_copy); 
+
+            // imshow("quit_black",depth_copy);
+
+            // waitKey(1);
+            // cvtColor(depth_copy,depth_copy,CV_GRAY2RGB);
+            // pyrMeanShiftFiltering(depth_copy,depth_copy,50,50,3);
+            // imshow("meahshift",depth_copy);
+            // waitKey(1);
     }
     return 0;
 }
