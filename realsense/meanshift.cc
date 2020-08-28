@@ -151,16 +151,40 @@ int main(int argc, char** argv) try
         cv::Mat depth_copy;
         mask_depth(depth,depth,4000);
         // norm_image(depth);
-        depth.convertTo(depth,CV_8UC1,0.63);
+        depth.convertTo(depth,CV_8UC1,0.0637);
         imshow("depth",depth);
         waitKey(1);
         // std::cout<<depth.rows<<"  "<<depth.cols<<"  "<<depth.channels()<<endl;
         depth.copyTo(depth_copy);
+        // cv::medianBlur(depth_copy,depth_copy,5);
 
+        // 进行修复
+        // cv::Mat iamge_mask;
+        // threshold(depth_copy,iamge_mask,1,255,CV_THRESH_BINARY_INV);
+        // cv::imshow("mask",iamge_mask);
+        // waitKey(1);
+        // cv::Mat mask_kernel=getStructuringElement(MORPH_RECT,Size(3,3));
+        // inpaint(depth_copy,iamge_mask,depth_copy,5,INPAINT_TELEA);
+        // imshow("mask_later",depth_copy);
+        // waitKey(1);
+        
         quit_black_block(depth_copy); 
         
         imshow("quit_black",depth_copy);
-    
+
+        Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));//核的大小可适当调整
+        //Mat out;
+        //进行闭操作
+        morphologyEx(depth_copy, depth_copy, MORPH_CLOSE, element);
+        //dilate(dhc, out, element);
+
+        // 显示效果图
+         imshow("bicaozuo", depth_copy);
+
+        // quit_black_block(depth_copy); 
+        
+        // imshow("quit_black",depth_copy);
+
         // waitKey(1);
         // cvtColor(depth_copy,depth_copy,CV_GRAY2RGB);
         // pyrMeanShiftFiltering(depth_copy,depth_copy,50,50,3);
