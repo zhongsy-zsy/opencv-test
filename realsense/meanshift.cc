@@ -127,7 +127,7 @@ vector<vector<Point> > find_obstacle(Mat &dep, int thresh = 20, int max_thresh =
     cout<<dep<<endl;
 
     /// 阈值分割
-    quit_black_block(dep);
+    // quit_black_block(dep);
     threshold(dep, threshold_output, thresh, 255, CV_THRESH_BINARY);
     imshow("fenge",threshold_output);
     //mask_depth(src, threshold_output);
@@ -217,7 +217,7 @@ int main(int argc, char** argv) try
         depth.convertTo(depth,CV_8UC1,0.1275);
         
         // std::cout<<depth.rows<<"  "<<depth.cols<<"  "<<depth.channels()<<endl;
-        depth.copyTo(depth_copy);
+         depth.copyTo(depth_copy);
         
         quit_black_block(depth_copy); 
         
