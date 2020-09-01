@@ -84,13 +84,14 @@ int main()
         rs2::depth_frame depth_frame=frames.get_depth_frame();
         Mat depth(Size(width,height),CV_16UC1,(void*)depth_frame.get_data(),Mat::AUTO_STEP);
 
+        
         // 去除零点干扰
          for(int i=0;i<depth.rows;i++)
         {
             for(int j=0;j<depth.cols;j++)
             {
                 if(depth.at<ushort>(i,j)==0)
-                depth.at<ushort>(i,j)=2000;
+                depth.at<ushort>(i,j)=960;
 
             }
         }
@@ -111,19 +112,21 @@ int main()
         cv::Mat mean,stddev;
         cv::meanStdDev(depth,mean,stddev);
         result<<"head"<<i<<" "<<endl<<"mean: "<<mean<<endl<<"stddev: "<<stddev<<endl<<"tail"<<endl;
-        
-        for(int i=0;i<out.rows;i++)
+
+        Mat_<short> new1=out;        
+        for(int i=0;i<new1.rows;i++)
         {
-            for(int j=0;j<out.cols;j++)
+            for(int j=0;j<new1.cols;j++)
             {
-                out.at<short>(i,j)-=2000;
+                    new1.at<short>(i,j)-=988;
+               
             }
         }
-        // cout<<out;
-        deal_data<<"head"<<i<<": "<<endl<<out<<"tail     "<<endl;
+        // cout<<new1;
+        deal_data<<"head"<<i<<": "<<endl<<new1<<"tail     "<<endl;
 
         cv::Mat mean1,stddev1;
-        cv::meanStdDev(out,mean1,stddev1);
+        cv::meanStdDev(new1,mean1,stddev1);
         deal_result<<"head"<<i<<" "<<endl<<"mean: "<<mean1<<endl<<"stddev: "<<stddev1<<endl<<"tail"<<endl;
         
         
