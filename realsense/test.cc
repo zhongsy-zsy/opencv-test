@@ -37,8 +37,8 @@ int main()
     
     pipe.start(cfg);
 
-    Mat latest;
-    int flag=0;
+    // Mat latest;
+    // int flag=0;
     std::fstream file;
     std::fstream result;
 
@@ -69,35 +69,43 @@ int main()
         cout<<"open failed"<<endl;
     }
 
-    deal_result.open("out_deal_result.txt",ios::out|ios::trunc);
+    deal_result.open("out_deal_result.csv",ios::out|ios::trunc);
     if(deal_result.is_open()){
         cout<<"open sucess"<<endl;
     }
     else{
         cout<<"open failed"<<endl;
     }
+    deal_result<<"times"<<","<<"mean"<<","<<"stddev"<<endl;
+    int flag=1;
     int i=1;
+    cv::Mat latest;
     while(true)
     {
         frames=pipe.wait_for_frames();
 
         rs2::depth_frame depth_frame=frames.get_depth_frame();
         Mat depth(Size(width,height),CV_16UC1,(void*)depth_frame.get_data(),Mat::AUTO_STEP);
-
+        if(flag==1)
+        {
+            latest=depth;
+            flag=0;
+            continue;
+        }
         
         // 去除零点干扰
-         for(int i=0;i<depth.rows;i++)
-        {
-            for(int j=0;j<depth.cols;j++)
-            {
-                if(depth.at<ushort>(i,j)==0)
-                depth.at<ushort>(i,j)=960;
+        //  for(int i=0;i<depth.rows;i++)
+        // {
+        //     for(int j=0;j<depth.cols;j++)
+        //     {
+        //         if(depth.at<ushort>(i,j)==0)
+        //         depth.at<ushort>(i,j)=960;
 
-            }
-        }
+        //     }
+        // }
 
         imshow("depth",depth);
-        cout<<depth;
+        // cout<<depth;
         waitKey(1);
         Mat out;
         depth.copyTo(out);
@@ -113,29 +121,36 @@ int main()
         cv::meanStdDev(depth,mean,stddev);
         result<<"head"<<i<<" "<<endl<<"mean: "<<mean<<endl<<"stddev: "<<stddev<<endl<<"tail"<<endl;
 
-        Mat_<short> new1=out;        
+         Mat_<short> new1=out;
+         Mat_<short> new2=latest;
+
+
+        new1=new1-new2;        
+        cout<<new1<<endl;
         for(int i=0;i<new1.rows;i++)
         {
             for(int j=0;j<new1.cols;j++)
             {
-                    new1.at<short>(i,j)-=988;
+                    if(std::fabs(new1.at<short>(i,j))>200)
+                    new1.at<short>(i,j)=0;
                
             }
         }
         // cout<<new1;
+
         deal_data<<"head"<<i<<": "<<endl<<new1<<"tail     "<<endl;
 
         cv::Mat mean1,stddev1;
         cv::meanStdDev(new1,mean1,stddev1);
-        deal_result<<"head"<<i<<" "<<endl<<"mean: "<<mean1<<endl<<"stddev: "<<stddev1<<endl<<"tail"<<endl;
+        deal_result<<i<<","<<mean1<<","<<stddev1<<endl;
         
         
         i++;
 
+        latest=depth;
 
 
-
-        cv::waitKey(2000);
+        cv::waitKey(1000);
 
     }   
 }
