@@ -61,30 +61,30 @@ void D435::mask_depth(cv::Mat &image, int throld)
  
         for (int j = 0; j<nc; j++) 
         {
-            // if(j<10||j>800||i<10||i>460)
-            // {
-            //     image.at<ushort>(i,j)=0;
-            //     continue;
-            // }
-            if (image.at<ushort>(i, j)>throld||image.at<ushort>(i,j)<12)
-            image.at<ushort>(i, j) = 0;
-        }
-    }
-
-    //滤除地面，也可以考虑把边界滤除去
-    int deltap=20;
-    int heig=3000;
-    float z=1;
-    for(int i=0;i<nr;i++)
-    {
-        for(int j=0;j<nc;j++)
-        {
-            if(heig-image.at<ushort>(i,j)*z<deltap||heig-image.at<ushort>(i,j)*z<0)
-            {
-                image.at<ushort>(i,j)=0;
+            // if (image.at<ushort>(i, j)>throld||image.at<ushort>(i,j)<12)
+          
+            if (image.at<ushort>(i, j) > throld || i > 455 || image.at<ushort>(i, j) < 50){
+                image.at<ushort>(i, j) = 0;
             }
         }
+        
     }
+    
+
+    //滤除地面，也可以考虑把边界滤除去
+    // int deltap=20;
+    // int heig=3000;
+    // float z=1;
+    // for(int i=0;i<nr;i++)
+    // {
+    //     for(int j=0;j<nc;j++)
+    //     {
+    //         if(heig-image.at<ushort>(i,j)*z<deltap||heig-image.at<ushort>(i,j)*z<0)
+    //         {
+    //             image.at<ushort>(i,j)=0;
+    //         }
+    //     }
+    // }
 }
 
 void  D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area)
@@ -149,7 +149,7 @@ void D435::calculate_mindistance()
 {
     std::vector<cv::Rect> ve_rect;
 
-    if(result.size()<1)
+    if(result.empty())
     {
         // 设置避障等级为0
     }
@@ -161,39 +161,74 @@ void D435::calculate_mindistance()
             rect=cv::boundingRect(result[i]);
             ve_rect.push_back(rect);
         }
-    }
-    std::vector<double> res;
-    if(ve_rect.size()>1)
-    {
-        for(int i=0;i<ve_rect.size();i++)
+    
+        std::vector<double> res;
+        if(!ve_rect.empty())
         {
-            cv::Mat imageROI(depth_data,ve_rect[i]);
-            // 过滤零点
-            for(int i=0;i<imageROI.rows;i++)
+            for(int i=0;i<ve_rect.size();i++)
             {
-                for(int j=0;j<imageROI.cols;j++)
+                cv::Mat imageROI(depth_data,ve_rect[i]);
+                // 过滤零点
+                for(int i=0;i<imageROI.rows;i++)
                 {
-                    if(imageROI.at<ushort>(i,j)==0)
+                    for(int j=0;j<imageROI.cols;j++)
                     {
-                        imageROI.at<ushort>(i,j)==3000;
+                        if(imageROI.at<ushort>(i,j)==0)
+                        {
+                            imageROI.at<ushort>(i,j)=3000;
+                        }
                     }
                 }
+                double min_dis;
+                cv::Point min_point;
+                std::vector<int> tmp;
+
+                // for(int i=0;i<3;i++)
+                while(tmp.size()<=3)
+                {
+                    cv::minMaxLoc(imageROI,&min_dis,NULL,&min_point,NULL);
+                    // std::cout<<min_dis<<std::endl;
+                    // 优化获取的是前面3个最小点的平均值
+                    if(tmp.size()==0){
+                        tmp.push_back(min_dis);
+                        imageROI.at<ushort>(min_point)=3000;
+                    }
+                    else{
+                        if(std::fabs(min_dis-tmp.back())<100)
+                        {
+                            tmp.push_back(min_dis);
+                            imageROI.at<ushort>(min_point)=3000;
+                        }
+                        else{
+                            // 是噪声点
+                            tmp.pop_back();
+                        }
+                    }
+                    // std::cout<<tmp.size()<<std::endl;
+                }
+                min_dis=0;
+                for(auto average:tmp)
+                {
+                    min_dis+=average;
+                }
+                res.push_back(min_dis/3.0);       
             }
-            double min_dis;
-            cv::minMaxLoc(imageROI,&min_dis,NULL,NULL);
-            res.push_back(min_dis);       
+
+        
+        if(!res.empty())
+
+        {
+
+            min_distance=*std::min_element(res.begin(),res.end());
+            std::cout<<min_distance<<std::endl;
         }
 
+        }
     }
-    if(res.size()>1)
-
-    {
-        min_distance=*std::min_element(res.begin(),res.end());
-    }
-
+    result.clear();
+    
     
 }
-
 
 void D435::handle_depth()
 {
@@ -201,12 +236,13 @@ void D435::handle_depth()
     data=depth_data.clone();
     mask_depth(data,3000);
     data.convertTo(data,CV_8UC1,0.085);
+    cv::imshow("depth_raw",data);
     quit_black_block(data);
     cv::Mat element=cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));//闭操作核的大小
     cv::morphologyEx(data,data,cv::MORPH_CLOSE,element);//闭操作
      cv::imshow("close",data);
     find_obstacle(data,147,255,500);
-
+    calculate_mindistance();
 
 }
 
