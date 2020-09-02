@@ -114,7 +114,7 @@ void  D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area)
     cv::Mat drawing = cv::Mat::zeros(threshold_output.size(), CV_8UC3);
     for (int i = 0; i< contours.size(); i++)
     {
-    if (contourArea(contours[i]) < area) //面积小于area的凸包，可忽略
+    if (contourArea(contours[i]) < area||contourArea(contours[i])>306000) //面积小于area的凸包，可忽略
     continue;
     result.push_back(hull[i]);
     cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
@@ -152,6 +152,8 @@ void D435::calculate_mindistance()
     if(result.empty())
     {
         // 设置避障等级为0
+        min_distance=3000;
+        std::cout<<min_distance<<std::endl;
     }
     else
     {
@@ -159,6 +161,8 @@ void D435::calculate_mindistance()
         {
             cv::Rect rect;
             rect=cv::boundingRect(result[i]);
+            if(rect.area()>307200)
+            continue;
             ve_rect.push_back(rect);
         }
     
@@ -240,8 +244,9 @@ void D435::handle_depth()
     quit_black_block(data);
     cv::Mat element=cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));//闭操作核的大小
     cv::morphologyEx(data,data,cv::MORPH_CLOSE,element);//闭操作
-     cv::imshow("close",data);
-    find_obstacle(data,147,255,500);
+    cv::imshow("close",data);
+    std::cout<<data<<std::endl;
+    find_obstacle(data,170,255,400);
     calculate_mindistance();
 
 }

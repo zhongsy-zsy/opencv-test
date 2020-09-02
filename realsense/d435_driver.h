@@ -8,7 +8,7 @@
 
 
 namespace {
-    const int Width=848;
+    const int Width=640;
     const int Height=480;
     const int fps=30; 
 
