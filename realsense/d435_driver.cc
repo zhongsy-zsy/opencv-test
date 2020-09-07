@@ -2,11 +2,12 @@
  "Copyright [year] <Copyright Owner>"
 */
 #include "d435_driver.h"
-#include<opencv2/core/core.hpp>
-#include<opencv2/imgproc/imgproc.hpp>
-#include<opencv2/highgui/highgui.hpp>
-#include<opencv2/imgproc/types_c.h>
 
+#include <opencv2/imgproc/types_c.h>
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 void D435::Init() {
   // rs2::context ctx;
@@ -147,13 +148,13 @@ void D435::calculate_mindistance() {
 
   if (result.empty()) {
     // 设置避障等级为0
-    min_distance = 3000;
-    std::cout << min_distance << std::endl;
+    // min_distance = 3000;
+    // std::cout << min_distance << std::endl;
   } else {
     for (int i = 0; i < result.size(); i++) {
       cv::Rect rect;
       rect = cv::boundingRect(result[i]);
-    //   if (rect.area() > 304000) {continue;}
+      //   if (rect.area() > 304000) {continue;}
       ve_rect.push_back(rect);
     }
 
@@ -207,12 +208,12 @@ void D435::calculate_mindistance() {
 
       if (!res.empty()) {
         min_distance = *std::min_element(res.begin(), res.end());
-        std::cout << "min_diatance" << min_distance << std::endl;
+         std::cout << "min_diatance" << min_distance << std::endl;
         if (min_distance < 500) {
           std::cout << "stop avoid" << std::endl;
-        } else if (min_distance < 1000) {
+        } else if (min_distance < 2000) {
           std::cout << "avoid level 1" << std::endl;
-        } else if (min_distance < 3000) {
+        } else if (min_distance < 4000) {
           std::cout << "avoid level 2" << std::endl;
         } else {
           std::cout << "aviod FREE" << std::endl;
@@ -231,92 +232,92 @@ void D435::caculate_thread4() {
   int count = 0;
   double max = 0;
   cv::Mat trd1(depth_data, cv::Range(119, 120));
-  std::cout << trd1.rows << std::endl;
-  std::cout << trd1.cols << std::endl;
+  //   std::cout << trd1.rows << std::endl;
+  //   std::cout << trd1.cols << std::endl;
   //   std::cout << "thread1" << trd1 << std::endl;
-  for (int j = 0; j < Width; j++) {
-    if (trd1.at<ushort>(0, j) == 0) {
-      continue;
-    } else {
-      res += trd1.at<ushort>(0, j);
-      count++;
-    }
-  }
+  //   for (int j = 0; j < Width; j++) {
+  //     if (trd1.at<ushort>(0, j) == 0) {
+  //       continue;
+  //     } else {
+  //       res += trd1.at<ushort>(0, j);
+  //       count++;
+  //     }
+  //   }
   //   std::cout << "dls" << std::endl;
-  max = 0;
+  //   max = 0;
   cv::minMaxLoc(trd1, NULL, &max, NULL, NULL);
-  if (max > 6000)
-    thread1 = 6000;
+  if (max > 8000)
+    thread1 = 8000;
   else if (max != 0) {
     thread1 = max;
     if (thread1 > 20) thread1 -= 20;
   }  // 提前量
   std::cout << "thread1: " << thread1 << std::endl;
-  res = 0;
-  count = 0;
+  //   res = 0;
+  //   count = 0;
   max = 0;
   cv::Mat trd2(depth_data, cv::Range(239, 240));
   //   std::cout << "thread2" << trd2 << std::endl;
-  for (int j = 0; j < Width; j++) {
-    if (trd2.at<ushort>(0, j) == 0) {
-      continue;
-    } else {
-      res += trd2.at<ushort>(0, j);
-      count++;
-    }
-  }
+  //   for (int j = 0; j < Width; j++) {
+  //     if (trd2.at<ushort>(0, j) == 0) {
+  //       continue;
+  //     } else {
+  //       res += trd2.at<ushort>(0, j);
+  //       count++;
+  //     }
+  //   }
   cv::minMaxLoc(trd2, NULL, &max, NULL, NULL);
-  if (max > 4000)
-    thread2 = 4000;
+  if (max > 6000)
+    thread2 = 6000;
   else if (max != 0) {
     thread2 = max;
     if (thread2 > 20) thread2 -= 20;  // 提前量
   }
   std::cout << "thread2: " << thread2 << std::endl;
-  res = 0;
-  count = 0;
+//   res = 0;
+//   count = 0;
   max = 0;
   cv::Mat trd3(depth_data, cv::Range(359, 360));
   //   std::cout << "thread3" << trd3 << std::endl;
-  for (int j = 0; j < Width; j++) {
-    if (trd3.at<ushort>(0, j) == 0) {
-      continue;
-    } else {
-      res += trd3.at<ushort>(0, j);
-      count++;
-    }
-  }
+//   for (int j = 0; j < Width; j++) {
+//     if (trd3.at<ushort>(0, j) == 0) {
+//       continue;
+//     } else {
+//       res += trd3.at<ushort>(0, j);
+//       count++;
+//     }
+//   }
   cv::minMaxLoc(trd3, NULL, &max, NULL, NULL);
-  if (max > 3000)
-    thread3 = 3000;
+  if (max > 5000)
+    thread3 = 5000;
   else if (max != 0) {
     thread3 = max;
     if (thread3 > 20) thread3 -= 20;  // 提前量
   }
   std::cout << "thread3: " << thread3 << std::endl;
-  res = 0;
-  count = 0;
+//   res = 0;
+//   count = 0;
   max = 0;
-  cv::Mat trd4(depth_data, cv::Range(479, 480));
+  cv::Mat trd4(depth_data, cv::Range(475, 476));
   //   std::cout << "thread4" << trd4 << std::endl;
-  for (int j = 0; j < Width; j++) {
-    if (trd4.at<ushort>(0, j) == 0) {
-      continue;
-    } else {
-      res += trd4.at<ushort>(0, j);
-      count++;
-    }
-  }
-  cv::minMaxLoc(trd2, NULL, &max, NULL, NULL);
-  if (max > 2000)
-    thread4 = 2000;
+//   for (int j = 0; j < Width; j++) {
+//     if (trd4.at<ushort>(0, j) == 0) {
+//       continue;
+//     } else {
+//       res += trd4.at<ushort>(0, j);
+//       count++;
+//     }
+//   }
+  cv::minMaxLoc(trd4, NULL, &max, NULL, NULL);
+  if (max > 4000)
+    thread4 = 4000;
   else if (max != 0) {
     thread4 = max;
     if (thread4 > 20) thread4 -= 20;  // 提前量
   }
   std::cout << "thread4: " << thread4 << std::endl;
-  res = 0;
-  count = 0;
+//   res = 0;
+//   count = 0;
   max = 0;
 }
 void D435::region_thread(cv::Mat &data) {
@@ -387,7 +388,7 @@ void D435::handle_depth() {
   cv::imshow("diate", data);
   cv::waitKey(1);
   //   std::cout << data << std::endl;
-  find_obstacle(data, 160, 255, 2500);
+  find_obstacle(data, 170, 255, 2500);
   calculate_mindistance();
 }
 
