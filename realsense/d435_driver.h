@@ -34,7 +34,8 @@ class D435 {
   void find_obstacle(cv::Mat &depth, int thresh = 200, int max_thresh = 255,
                      int area = 500);
   void calculate_mindistance();
-
+  void region_thread(cv::Mat &data);
+  void caculate_thread4();
   std::shared_ptr<std::thread> run_executor_;
   rs2::context ctx;
   rs2::frameset frames;
@@ -48,5 +49,9 @@ class D435 {
   cv::Mat depth_data;
   double min_distance;
   std::vector<std::vector<cv::Point> > result;  //存放凸包
+  int thread1 = 6000;
+  int thread2 = 4000;
+  int thread3 = 3000;
+  int thread4 = 2000;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

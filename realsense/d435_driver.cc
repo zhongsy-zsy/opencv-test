@@ -2,6 +2,11 @@
  "Copyright [year] <Copyright Owner>"
 */
 #include "d435_driver.h"
+#include<opencv2/core/core.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/types_c.h>
+
 
 void D435::Init() {
   // rs2::context ctx;
@@ -93,17 +98,16 @@ void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
   // 阈值分割
-  threshold(dep, threshold_output, thresh, 255, cv::THRESH_BINARY);
+  threshold(dep, threshold_output, thresh, 255, cv::THRESH_BINARY_INV);
   cv::imshow("thread_later", threshold_output);
   cv::waitKey(1);
   // mask_depth(src, threshold_output);
   /// 寻找轮廓
-
-  findContours(threshold_output, contours, hierarchy, cv::RETR_TREE,
-               cv::CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+  findContours(threshold_output, contours, hierarchy, CV_RETR_TREE,
+               CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
   /// 对每个轮廓计算其凸包
   std::vector<std::vector<cv::Point> > hull(contours.size());
-  for (int i = 0; i < contours.size(); i++) {
+  for (uint i = 0; i < contours.size(); i++) {
     convexHull(cv::Mat(contours[i]), hull[i], false);
   }
 
@@ -111,7 +115,7 @@ void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
   cv::Mat drawing = cv::Mat::zeros(threshold_output.size(), CV_8UC3);
   for (int i = 0; i < contours.size(); i++) {
     if (contourArea(contours[i]) < area ||
-        contourArea(contours[i]) > 304000)  // 面积大于或小于area的凸包，可忽略
+        contourArea(contours[i]) > 306000)  // 面积大于或小于area的凸包，可忽略
       continue;
     result.push_back(hull[i]);
     cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
@@ -149,7 +153,7 @@ void D435::calculate_mindistance() {
     for (int i = 0; i < result.size(); i++) {
       cv::Rect rect;
       rect = cv::boundingRect(result[i]);
-      if (rect.area() > 307200) continue;
+    //   if (rect.area() > 304000) {continue;}
       ve_rect.push_back(rect);
     }
 
@@ -178,7 +182,7 @@ void D435::calculate_mindistance() {
         // for(int i=0;i<3;i++)
         while (tmp.size() <= 3) {
           cv::minMaxLoc(imageROI, &min_dis, NULL, &min_point, NULL);
-        //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
+          //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
           // 优化获取的是前面3个最小点的平均值
           if (tmp.empty()) {
             tmp.push_back(min_dis);
@@ -222,11 +226,154 @@ void D435::calculate_mindistance() {
   result.clear();
 }
 
+void D435::caculate_thread4() {
+  int res = 0;
+  int count = 0;
+  double max = 0;
+  cv::Mat trd1(depth_data, cv::Range(119, 120));
+  std::cout << trd1.rows << std::endl;
+  std::cout << trd1.cols << std::endl;
+  //   std::cout << "thread1" << trd1 << std::endl;
+  for (int j = 0; j < Width; j++) {
+    if (trd1.at<ushort>(0, j) == 0) {
+      continue;
+    } else {
+      res += trd1.at<ushort>(0, j);
+      count++;
+    }
+  }
+  //   std::cout << "dls" << std::endl;
+  max = 0;
+  cv::minMaxLoc(trd1, NULL, &max, NULL, NULL);
+  if (max > 6000)
+    thread1 = 6000;
+  else if (max != 0) {
+    thread1 = max;
+    if (thread1 > 20) thread1 -= 20;
+  }  // 提前量
+  std::cout << "thread1: " << thread1 << std::endl;
+  res = 0;
+  count = 0;
+  max = 0;
+  cv::Mat trd2(depth_data, cv::Range(239, 240));
+  //   std::cout << "thread2" << trd2 << std::endl;
+  for (int j = 0; j < Width; j++) {
+    if (trd2.at<ushort>(0, j) == 0) {
+      continue;
+    } else {
+      res += trd2.at<ushort>(0, j);
+      count++;
+    }
+  }
+  cv::minMaxLoc(trd2, NULL, &max, NULL, NULL);
+  if (max > 4000)
+    thread2 = 4000;
+  else if (max != 0) {
+    thread2 = max;
+    if (thread2 > 20) thread2 -= 20;  // 提前量
+  }
+  std::cout << "thread2: " << thread2 << std::endl;
+  res = 0;
+  count = 0;
+  max = 0;
+  cv::Mat trd3(depth_data, cv::Range(359, 360));
+  //   std::cout << "thread3" << trd3 << std::endl;
+  for (int j = 0; j < Width; j++) {
+    if (trd3.at<ushort>(0, j) == 0) {
+      continue;
+    } else {
+      res += trd3.at<ushort>(0, j);
+      count++;
+    }
+  }
+  cv::minMaxLoc(trd3, NULL, &max, NULL, NULL);
+  if (max > 3000)
+    thread3 = 3000;
+  else if (max != 0) {
+    thread3 = max;
+    if (thread3 > 20) thread3 -= 20;  // 提前量
+  }
+  std::cout << "thread3: " << thread3 << std::endl;
+  res = 0;
+  count = 0;
+  max = 0;
+  cv::Mat trd4(depth_data, cv::Range(479, 480));
+  //   std::cout << "thread4" << trd4 << std::endl;
+  for (int j = 0; j < Width; j++) {
+    if (trd4.at<ushort>(0, j) == 0) {
+      continue;
+    } else {
+      res += trd4.at<ushort>(0, j);
+      count++;
+    }
+  }
+  cv::minMaxLoc(trd2, NULL, &max, NULL, NULL);
+  if (max > 2000)
+    thread4 = 2000;
+  else if (max != 0) {
+    thread4 = max;
+    if (thread4 > 20) thread4 -= 20;  // 提前量
+  }
+  std::cout << "thread4: " << thread4 << std::endl;
+  res = 0;
+  count = 0;
+  max = 0;
+}
+void D435::region_thread(cv::Mat &data) {
+  int nr = data.rows;
+  int nc = data.cols;
+  for (int i = 0; i < 120; i++) {
+    for (int j = 0; j < nc; j++) {
+      if (data.at<ushort>(i, j) > thread1) {
+        data.at<ushort>(i, j) = 0;
+      }
+      if (data.at<ushort>(i, j) == 0) {
+        data.at<ushort>(i, j) = thread1;
+      }
+      data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread1;
+    }
+  }
+  for (int i = 120; i < 240; i++) {
+    for (int j = 0; j < nc; j++) {
+      if (data.at<ushort>(i, j) > thread2) {
+        data.at<ushort>(i, j) = 0;
+      }
+      if (data.at<ushort>(i, j) == 0) {
+        data.at<ushort>(i, j) = thread2;
+      }
+      data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread2;
+    }
+  }
+  for (int i = 240; i < 360; i++) {
+    for (int j = 0; j < nc; j++) {
+      if (data.at<ushort>(i, j) > thread3) {
+        data.at<ushort>(i, j) = 0;
+      }
+      if (data.at<ushort>(i, j) == 0) {
+        data.at<ushort>(i, j) = thread3;
+      }
+      data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread3;
+    }
+  }
+  for (int i = 360; i < 480; i++) {
+    for (int j = 0; j < nc; j++) {
+      if (data.at<ushort>(i, j) > thread4) {
+        data.at<ushort>(i, j) = 0;
+      }
+      if (data.at<ushort>(i, j) == 0) {
+        data.at<ushort>(i, j) = thread4;
+      }
+      data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread4;
+    }
+  }
+}
+
 void D435::handle_depth() {
   cv::Mat data;
   data = depth_data.clone();
-  mask_depth(data, 3000);
-  data.convertTo(data, CV_8UC1, 0.085);
+  //   mask_depth(data, 3000);
+  region_thread(data);
+  data.convertTo(data, CV_8UC1, 1);
   quit_black_block(data);
   cv::imshow("depth_raw", data);
 
@@ -240,13 +387,14 @@ void D435::handle_depth() {
   cv::imshow("diate", data);
   cv::waitKey(1);
   //   std::cout << data << std::endl;
-  find_obstacle(data, 250, 255, 400);
+  find_obstacle(data, 160, 255, 2500);
   calculate_mindistance();
 }
 
 void D435::HandleFeedbackData() {
   while (1) {
     get_depth();
+    caculate_thread4();
     handle_depth();
   }
 }
