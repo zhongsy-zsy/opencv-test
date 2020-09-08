@@ -49,9 +49,11 @@ class D435 {
   cv::Mat depth_data;
   double min_distance;
   std::vector<std::vector<cv::Point> > result;  //存放凸包
-  int thread1 = 6000;
-  int thread2 = 4000;
-  int thread3 = 3000;
-  int thread4 = 2000;
+  int thread1;
+  int thread2;
+  int thread3;
+  int thread4;
+  int thread5;
+  int thread6;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

@@ -231,7 +231,7 @@ void D435::caculate_thread4() {
   int res = 0;
   int count = 0;
   double max = 0;
-  cv::Mat trd1(depth_data, cv::Range(119, 120));
+  cv::Mat trd1(depth_data, cv::Range(79, 80));
   //   std::cout << trd1.rows << std::endl;
   //   std::cout << trd1.cols << std::endl;
   //   std::cout << "thread1" << trd1 << std::endl;
@@ -246,9 +246,16 @@ void D435::caculate_thread4() {
   //   std::cout << "dls" << std::endl;
   //   max = 0;
   cv::minMaxLoc(trd1, NULL, &max, NULL, NULL);
-  if (std::fabs(thread1 - max) > 300) {
-  } else if (max > 8000) {
-    thread1 = 8000;
+  if (thread1 == 0) {
+    if (max > 6000) {
+      thread1 = 6000;
+    } else if (max != 0) {
+      thread1 = max;
+      if (thread1 > 20) thread1 -= 20;  // 提前量
+    }
+  } else if (std::fabs(thread1 - max && max < 6000) > 300) {
+  } else if (max > 6000) {
+    thread1 = 6000;
   } else if (max != 0) {
     thread1 = max;
     if (thread1 > 20) thread1 -= 20;
@@ -257,7 +264,7 @@ void D435::caculate_thread4() {
   //   res = 0;
   //   count = 0;
   max = 0;
-  cv::Mat trd2(depth_data, cv::Range(239, 240));
+  cv::Mat trd2(depth_data, cv::Range(159, 160));
   //   std::cout << "thread2" << trd2 << std::endl;
   //   for (int j = 0; j < Width; j++) {
   //     if (trd2.at<ushort>(0, j) == 0) {
@@ -268,9 +275,16 @@ void D435::caculate_thread4() {
   //     }
   //   }
   cv::minMaxLoc(trd2, NULL, &max, NULL, NULL);
-  if (std::fabs(thread2 - max) > 300) {
-  } else if (max > 6000) {
-    thread2 = 6000;
+  if (thread2 == 0) {
+    if (max > 5500) {
+      thread2 = 5500;
+    } else if (max != 0) {
+      thread2 = max;
+      if (thread2 > 20) thread2 -= 20;  // 提前量
+    }
+  } else if (std::fabs(thread2 - max) > 300) {
+  } else if (max > 5500) {
+    thread2 = 5500;
   } else if (max != 0) {
     thread2 = max;
     if (thread2 > 20) thread2 -= 20;  // 提前量
@@ -279,7 +293,7 @@ void D435::caculate_thread4() {
   //   res = 0;
   //   count = 0;
   max = 0;
-  cv::Mat trd3(depth_data, cv::Range(359, 360));
+  cv::Mat trd3(depth_data, cv::Range(239, 240));
   //   std::cout << "thread3" << trd3 << std::endl;
   //   for (int j = 0; j < Width; j++) {
   //     if (trd3.at<ushort>(0, j) == 0) {
@@ -290,7 +304,14 @@ void D435::caculate_thread4() {
   //     }
   //   }
   cv::minMaxLoc(trd3, NULL, &max, NULL, NULL);
-  if (std::fabs(thread3 - max) > 300) {
+  if (thread3 == 0) {
+    if (max > 5000) {
+      thread3 = 5000;
+    } else if (max != 0) {
+      thread3 = max;
+      if (thread3 > 20) thread3 -= 20;  // 提前量
+    }
+  } else if (std::fabs(thread3 - max) > 300 && max < 5000) {
   } else if (max > 5000) {
     thread3 = 5000;
   } else if (max != 0) {
@@ -301,7 +322,7 @@ void D435::caculate_thread4() {
   //   res = 0;
   //   count = 0;
   max = 0;
-  cv::Mat trd4(depth_data, cv::Range(475, 476));
+  cv::Mat trd4(depth_data, cv::Range(319, 320));
   //   std::cout << "thread4" << trd4 << std::endl;
   //   for (int j = 0; j < Width; j++) {
   //     if (trd4.at<ushort>(0, j) == 0) {
@@ -312,9 +333,16 @@ void D435::caculate_thread4() {
   //     }
   //   }
   cv::minMaxLoc(trd4, NULL, &max, NULL, NULL);
-  if (std::fabs(thread4 - max) > 300) {
-  } else if (max > 4000) {
-    thread4 = 4000;
+  if (thread4 == 0) {
+    if (max > 4500) {
+      thread4 = 4500;
+    } else if (max != 0) {
+      thread4 = max;
+      if (thread4 > 20) thread4 -= 20;  // 提前量
+    }
+  } else if (std::fabs(thread4 - max) > 300 && max < 4500) {
+  } else if (max > 4500) {
+    thread4 = 4500;
   } else if (max != 0) {
     thread4 = max;
     if (thread4 > 20) thread4 -= 20;  // 提前量
@@ -323,11 +351,49 @@ void D435::caculate_thread4() {
   //   res = 0;
   //   count = 0;
   max = 0;
+  cv::Mat trd5(depth_data, cv::Range(399, 400));
+  cv::minMaxLoc(trd5, NULL, &max, NULL, NULL);
+  // std::cout << trd5 << std::endl;
+  if (thread5 == 0) {
+    if (max > 4000) {
+      thread5 = 4000;
+    } else if (max != 0) {
+      thread5 = max;
+      if (thread5 > 20) thread5 -= 20;  // 提前量
+    }
+  } else if (std::fabs(thread5 - max) > 300 && max < 4000) {
+  } else if (max > 4000) {
+    thread5 = 4000;
+  } else if (max != 0) {
+    thread5 = max;
+    if (thread5 > 20) thread5 -= 20;  // 提前量
+  }
+  std::cout << "thread5: " << thread5 << std::endl;
+
+  max = 0;
+  cv::Mat trd6(depth_data, cv::Range(475, 476));
+  cv::minMaxLoc(trd6, NULL, &max, NULL, NULL);
+  std::cout << max << std::endl;
+  if (thread6 == 0) {
+    if (max > 4000) {
+      thread6 = 4000;
+    } else if (max != 0) {
+      thread6 = max;
+      if (thread6 > 20) thread6 -= 20;  // 提前量
+    }
+  } else if (std::fabs(thread6 - max) > 300 && max < 4000) {
+  } else if (max > 4000) {
+    thread6 = 4000;
+  } else if (max != 0) {
+    thread4 = max;
+    if (thread6 > 20) thread6 -= 20;  // 提前量
+  }
+  std::cout << "thread6: " << thread6 << std::endl;
 }
 void D435::region_thread(cv::Mat &data) {
   int nr = data.rows;
   int nc = data.cols;
-  for (int i = 0; i < 120; i++) {
+  for (int i = 0; i < 80; i++) {
     for (int j = 0; j < nc; j++) {
       if (data.at<ushort>(i, j) > thread1) {
         data.at<ushort>(i, j) = thread1;
@@ -338,7 +404,7 @@ void D435::region_thread(cv::Mat &data) {
       data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread1;
     }
   }
-  for (int i = 120; i < 240; i++) {
+  for (int i = 80; i < 160; i++) {
     for (int j = 0; j < nc; j++) {
       if (data.at<ushort>(i, j) > thread2) {
         data.at<ushort>(i, j) = thread2;
@@ -349,7 +415,7 @@ void D435::region_thread(cv::Mat &data) {
       data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread2;
     }
   }
-  for (int i = 240; i < 360; i++) {
+  for (int i = 160; i < 240; i++) {
     for (int j = 0; j < nc; j++) {
       if (data.at<ushort>(i, j) > thread3) {
         data.at<ushort>(i, j) = thread3;
@@ -360,7 +426,7 @@ void D435::region_thread(cv::Mat &data) {
       data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread3;
     }
   }
-  for (int i = 360; i < 480; i++) {
+  for (int i = 240; i < 320; i++) {
     for (int j = 0; j < nc; j++) {
       if (data.at<ushort>(i, j) > thread4) {
         data.at<ushort>(i, j) = thread4;
@@ -369,6 +435,28 @@ void D435::region_thread(cv::Mat &data) {
         data.at<ushort>(i, j) = thread4;
       }
       data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread4;
+    }
+  }
+  for (int i = 320; i < 400; i++) {
+    for (int j = 0; j < nc; j++) {
+      if (data.at<ushort>(i, j) > thread5) {
+        data.at<ushort>(i, j) = thread5;
+      }
+      if (data.at<ushort>(i, j) == 0) {
+        data.at<ushort>(i, j) = thread5;
+      }
+      data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread5;
+    }
+  }
+  for (int i = 400; i < 480; i++) {
+    for (int j = 0; j < nc; j++) {
+      if (data.at<ushort>(i, j) > thread5) {
+        data.at<ushort>(i, j) = thread5;
+      }
+      if (data.at<ushort>(i, j) == 0) {
+        data.at<ushort>(i, j) = thread5;
+      }
+      data.at<ushort>(i, j) = data.at<ushort>(i, j) * 255 / thread5;
     }
   }
 }
