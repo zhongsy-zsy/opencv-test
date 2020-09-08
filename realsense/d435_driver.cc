@@ -53,8 +53,7 @@ void D435::get_depth() {
   //   cv::imshow("depth", depth);
   //   cv::waitKey(1);
   cv::Mat display = depth.clone();
-  std::cout << display << std::endl;
-  display.convertTo(display, CV_8UC1,1);
+  display.convertTo(display, CV_8UC1, 255.0 / 7000.0, 0.0);
   cv::imshow("depth", display);
   cv::waitKey(1);
   depth.copyTo(depth_data);
@@ -253,14 +252,14 @@ void D435::caculate_thread4() {
       thread1 = 6000;
     } else if (max != 0) {
       thread1 = max;
-      if (thread1 > 20) thread1 -= 20;  // 提前量
+      if (thread1 > 10) thread1 -= 10;  // 提前量
     }
   } else if (std::fabs(thread1 - max) > error_thread && max < 6000) {
   } else if (max > 6000) {
     thread1 = 6000;
   } else if (max != 0) {
     thread1 = max;
-    if (thread1 > 20) thread1 -= 20;
+    if (thread1 > 10) thread1 -= 10;
   }  // 提前量
   std::cout << "thread1: " << thread1 << std::endl;
   //   res = 0;
@@ -282,14 +281,14 @@ void D435::caculate_thread4() {
       thread2 = 5500;
     } else if (max != 0) {
       thread2 = max;
-      if (thread2 > 20) thread2 -= 20;  // 提前量
+      if (thread2 > 10) thread2 -= 10;  // 提前量
     }
   } else if (std::fabs(thread2 - max) > error_thread && max < 5500) {
   } else if (max > 5500) {
     thread2 = 5500;
   } else if (max != 0) {
     thread2 = max;
-    if (thread2 > 20) thread2 -= 20;  // 提前量
+    if (thread2 > 10) thread2 -= 10;  // 提前量
   }
   std::cout << "thread2: " << thread2 << std::endl;
   //   res = 0;
@@ -311,14 +310,14 @@ void D435::caculate_thread4() {
       thread3 = 5000;
     } else if (max != 0) {
       thread3 = max;
-      if (thread3 > 20) thread3 -= 20;  // 提前量
+      if (thread3 > 10) thread3 -= 10;  // 提前量
     }
   } else if (std::fabs(thread3 - max) > error_thread && max < 5000) {
   } else if (max > 5000) {
     thread3 = 5000;
   } else if (max != 0) {
     thread3 = max;
-    if (thread3 > 20) thread3 -= 20;  // 提前量
+    if (thread3 > 10) thread3 -= 10;  // 提前量
   }
   std::cout << "thread3: " << thread3 << std::endl;
   //   res = 0;
@@ -340,14 +339,14 @@ void D435::caculate_thread4() {
       thread4 = 4500;
     } else if (max != 0) {
       thread4 = max;
-      if (thread4 > 20) thread4 -= 20;  // 提前量
+      if (thread4 > 10) thread4 -= 10;  // 提前量
     }
   } else if (std::fabs(thread4 - max) > error_thread && max < 4500) {
   } else if (max > 4500) {
     thread4 = 4500;
   } else if (max != 0) {
     thread4 = max;
-    if (thread4 > 20) thread4 -= 20;  // 提前量
+    if (thread4 > 10) thread4 -= 10;  // 提前量
   }
   std::cout << "thread4: " << thread4 << std::endl;
   //   res = 0;
@@ -361,19 +360,19 @@ void D435::caculate_thread4() {
       thread5 = 4000;
     } else if (max != 0) {
       thread5 = max;
-      if (thread5 > 20) thread5 -= 20;  // 提前量
+      if (thread5 > 10) thread5 -= 10;  // 提前量
     }
   } else if (std::fabs(thread5 - max) > error_thread && max < 4000) {
   } else if (max > 4000) {
     thread5 = 4000;
   } else if (max != 0) {
     thread5 = max;
-    if (thread5 > 20) thread5 -= 20;  // 提前量
+    if (thread5 > 10) thread5 -= 10;  // 提前量
   }
   std::cout << "thread5: " << thread5 << std::endl;
 
   max = 0;
-  cv::Mat trd6(depth_data, cv::Range(475, 476));
+  cv::Mat trd6(depth_data, cv::Range(478, 480));
   cv::minMaxLoc(trd6, NULL, &max, NULL, NULL);
   std::cout << max << std::endl;
   if (thread6 == 0) {
@@ -381,7 +380,7 @@ void D435::caculate_thread4() {
       thread6 = 4000;
     } else if (max != 0) {
       thread6 = max;
-      if (thread6 > 20) thread6 -= 20;  // 提前量
+      if (thread6 > 10) thread6 -= 10;  // 提前量
     }
   }
   //   else if (std::fabs(thread6 - max) > error_thread && max < 4000) {
@@ -390,7 +389,7 @@ void D435::caculate_thread4() {
     thread6 = 4000;
   } else if (max != 0) {
     thread6 = max;
-    if (thread6 > 20) thread6 -= 20;  // 提前量
+    if (thread6 > 10) thread6 -= 10;  // 提前量
   }
   std::cout << "thread6: " << thread6 << std::endl;
 }
@@ -464,9 +463,12 @@ void D435::region_thread(cv::Mat &data) {
 void D435::handle_depth() {
   cv::Mat data;
   data = depth_data.clone();
+  cv::medianBlur(data, data, 5);
   //   mask_depth(data, 3000);
   region_thread(data);
   data.convertTo(data, CV_8UC1, 1);
+  cv::imshow("fenkuaizhuanhuan", data);
+  cv::waitKey(1);
   //   std::cout << data << std::endl;
   quit_black_block(data);
   cv::imshow("depth_raw", data);
