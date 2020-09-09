@@ -23,6 +23,7 @@ class D435 {
   // 实现AbstractDriver的接口
   void Init();
   void GetData(void *data);
+  void separate_byte();
 
  private:
   //自定义接口

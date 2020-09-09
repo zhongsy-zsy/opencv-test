@@ -45,6 +45,74 @@ void D435::GetData(void *data) {
   *cdata = depth_data;
 }
 
+void D435::separate_byte() {
+  //   ushort a = 258;
+  //   std::cout << "si" << sizeof(a) << std::endl;
+  //   ushort *point = &a;
+  //   void *tmp_point = point;
+  //   auto aa = static_cast<char *>(tmp_point);
+  //   std::cout << (int)(*aa) << std::endl;
+  //   aa += 1;
+  //   std::cout << (int)(*aa) << std::endl;
+
+//   ushort num = 65520;
+//   cv::Mat r(4, 4, CV_16UC1);
+//   for (int i = 0; i < r.rows; i++) {
+//     for (int j = 0; j < r.cols; j++) {
+//       r.at<ushort>(i, j) = num;
+//       num++;
+//     }
+//   }
+//   std::cout << r << std::endl;
+
+  //   cv::Mat *pp = &r;
+  //   void *tmp_p = pp;
+  //   auto b = static_cast<int *>(tmp_p);
+  //   std::cout << sizeof(r.at<ushort>(0, 0)) << std::endl;
+  //   std::cout << sizeof(r) << std::endl;
+  //   for (int i = 0; i < 48; i++) {
+  //     std::cout << static_cast<ushort>(*b) << std::endl;
+  //     b += 1;
+  //   }
+  /*
+  进行 separate分离测试一
+   */
+  //   cv::Mat high_8(4, 4, CV_8UC1);
+  //   cv::Mat low_8(4, 4, CV_8UC1);
+  //   for (int i = 0; i < r.rows; i++) {
+  //     for (int j = 0; j < r.cols; j++) {
+  //       //   left = (number >> 8) & 0XFF;  //先取高八位
+  //       //   right = number & 0XFF;        //再取第八位
+  //       high_8.at<uchar>(i, j) =
+  //           static_cast<uchar>((r.at<ushort>(i, j) >> 8) & 0xFF);
+  //       low_8.at<uchar>(i, j) =
+  //           static_cast<uchar>(r.at<ushort>(i, j) & 0xFF);
+  //     }
+  //   }
+  //   std::cout << high_8 << std::endl;
+  //   std::cout << low_8 << std::endl;
+
+  /*
+  正式的代码
+   */
+  cv::Mat high_8byte(Height, Width, CV_8UC1);
+  cv::Mat low_8byte(Height, Width, CV_8UC1);
+  for (int i = 0; i < depth_data.rows; i++) {
+    for (int j = 0; j < depth_data.cols; j++) {
+      //   left = (number >> 8) & 0XFF;  //先取高八位
+      //   right = number & 0XFF;        //再取第八位
+      high_8byte.at<uchar>(i, j) =
+          static_cast<uchar>((depth_data.at<ushort>(i, j) >> 8) & 0xFF);
+      low_8byte.at<uchar>(i, j) =
+          static_cast<uchar>(depth_data.at<ushort>(i, j) & 0xFF);
+    }
+  }
+  cv::imshow("low_8byte", low_8byte);
+  cv::waitKey(1);
+  cv::imshow("high_8byte", high_8byte);
+  cv::waitKey(1);
+}
+
 void D435::get_depth() {
   frames = pipe.wait_for_frames();
   rs2::depth_frame depth_frame = frames.get_depth_frame();
@@ -490,7 +558,8 @@ void D435::handle_depth() {
 void D435::HandleFeedbackData() {
   while (1) {
     get_depth();
-    caculate_thread4();
-    handle_depth();
+    separate_byte();
+    // caculate_thread4();
+    // handle_depth();
   }
 }

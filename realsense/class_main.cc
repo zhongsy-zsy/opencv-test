@@ -1,14 +1,11 @@
-#include"d435_driver.h"
+#include "d435_driver.h"
 
+int main() {
+  D435 driver;
+  driver.Init();
+//   driver.separate_byte();
 
-int main()
-{
-    D435 driver;
-    driver.Init();
-    
-    while (1)
-    {
-        /* code */
-    }
-    
+  while (1) {
+    /* code */
+  }
 }
