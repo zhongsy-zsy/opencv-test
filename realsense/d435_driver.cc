@@ -102,11 +102,12 @@ void D435::separate_byte() {
       //   left = (number >> 8) & 0XFF;  //先取高八位
       //   right = number & 0XFF;        //再取第八位
       high_8byte.at<uchar>(i, j) =
-          static_cast<uchar>((depth_data.at<ushort>(i, j) >> 8) & 0xFF);
+          static_cast<uchar>((depth_data.at<ushort>(i, j) >> 8) & 0xFF)*10;
       low_8byte.at<uchar>(i, j) =
           static_cast<uchar>(depth_data.at<ushort>(i, j) & 0xFF);
     }
   }
+  std::cout << high_8byte << std::endl;
   cv::imshow("low_8byte", low_8byte);
   cv::waitKey(1);
   cv::imshow("high_8byte", high_8byte);
