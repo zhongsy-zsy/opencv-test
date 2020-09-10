@@ -8,12 +8,30 @@
 #include <thread>
 #include <vector>
 
+#include "GRANSAC.hpp"
+#include "PlaneModel.hpp"
+
 namespace {
 const int Width = 640;
 const int Height = 480;
 const int fps = 30;
 
 }  // namespace
+
+struct arg_plane {
+  double a;
+  double b;
+  double c;
+};
+
+struct argument {
+  arg_plane fir;
+  arg_plane sec;
+  arg_plane thrid;
+  arg_plane four;
+  arg_plane five;
+  arg_plane six;
+};
 
 class D435 {
  public:
@@ -24,6 +42,10 @@ class D435 {
   void Init();
   void GetData(void *data);
   void separate_byte();
+  void matching();
+  bool PlaneFitting(const std::vector<Vector3VP> &points_input, double *center,
+                    double *normal);
+  void calibration();
 
  private:
   //自定义接口
@@ -56,5 +78,6 @@ class D435 {
   double thread4;
   double thread5;
   double thread6;
+  argument plan_arg;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

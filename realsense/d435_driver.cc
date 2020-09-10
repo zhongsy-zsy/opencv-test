@@ -8,6 +8,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <fstream>
 
 void D435::Init() {
   // rs2::context ctx;
@@ -55,15 +56,15 @@ void D435::separate_byte() {
   //   aa += 1;
   //   std::cout << (int)(*aa) << std::endl;
 
-//   ushort num = 65520;
-//   cv::Mat r(4, 4, CV_16UC1);
-//   for (int i = 0; i < r.rows; i++) {
-//     for (int j = 0; j < r.cols; j++) {
-//       r.at<ushort>(i, j) = num;
-//       num++;
-//     }
-//   }
-//   std::cout << r << std::endl;
+  //   ushort num = 65520;
+  //   cv::Mat r(4, 4, CV_16UC1);
+  //   for (int i = 0; i < r.rows; i++) {
+  //     for (int j = 0; j < r.cols; j++) {
+  //       r.at<ushort>(i, j) = num;
+  //       num++;
+  //     }
+  //   }
+  //   std::cout << r << std::endl;
 
   //   cv::Mat *pp = &r;
   //   void *tmp_p = pp;
@@ -102,7 +103,7 @@ void D435::separate_byte() {
       //   left = (number >> 8) & 0XFF;  //先取高八位
       //   right = number & 0XFF;        //再取第八位
       high_8byte.at<uchar>(i, j) =
-          static_cast<uchar>((depth_data.at<ushort>(i, j) >> 8) & 0xFF)*10;
+          static_cast<uchar>((depth_data.at<ushort>(i, j) >> 8) & 0xFF) * 10;
       low_8byte.at<uchar>(i, j) =
           static_cast<uchar>(depth_data.at<ushort>(i, j) & 0xFF);
     }
@@ -163,7 +164,7 @@ void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
   cv::Mat dep;
   dep = depth.clone();
   cv::Mat threshold_output;
-  std::vector<std::vector<cv::Point> > contours;
+  std::vector<std::vector<cv::Point>> contours;
 
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
@@ -176,7 +177,7 @@ void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
   findContours(threshold_output, contours, hierarchy, CV_RETR_TREE,
                CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
   /// 对每个轮廓计算其凸包
-  std::vector<std::vector<cv::Point> > hull(contours.size());
+  std::vector<std::vector<cv::Point>> hull(contours.size());
   for (uint i = 0; i < contours.size(); i++) {
     convexHull(cv::Mat(contours[i]), hull[i], false);
   }
@@ -529,6 +530,300 @@ void D435::region_thread(cv::Mat &data) {
   }
 }
 
+void D435::matching() {
+  cv::Mat match = depth_data.clone();
+  for (int i = 0; i < match.rows; i++) {
+    for (int j = 0; j < match.cols; j++) {
+      if (i >= 0 && i < 80) {
+        if (-match.at<ushort>(i, j) +
+                (plan_arg.fir.a * j + (plan_arg.fir.b) * i + plan_arg.fir.c) >=
+            45) {
+          match.at<ushort>(i, j) = 255;
+        } else {
+          match.at<ushort>(i, j) = 0;
+        }
+      }
+
+      if (i >= 80 && i < 160) {
+        if (-match.at<ushort>(i, j) +
+                (plan_arg.sec.a * j + (plan_arg.sec.b) * i + plan_arg.sec.c) >=
+            45) {
+          match.at<ushort>(i, j) = 255;
+        } else {
+          match.at<ushort>(i, j) = 0;
+        }
+      }
+
+      if (i >= 160 && i < 240) {
+        if (-match.at<ushort>(i, j) +
+                (plan_arg.thrid.a * j + (plan_arg.thrid.b) * i +
+                 plan_arg.thrid.c) >=
+            50) {
+          match.at<ushort>(i, j) = 255;
+        } else {
+          match.at<ushort>(i, j) = 0;
+        }
+      }
+
+      if (i >= 240 && i < 320) {
+        if (-match.at<ushort>(i, j) +
+                (plan_arg.four.a * j + (plan_arg.four.b) * i +
+                 plan_arg.four.c) >=
+            50) {
+          match.at<ushort>(i, j) = 255;
+        } else {
+          match.at<ushort>(i, j) = 0;
+        }
+      }
+
+      if (i >= 320 && i < 400) {
+        if (-match.at<ushort>(i, j) +
+                (plan_arg.five.a * j + (plan_arg.five.b) * i +
+                 plan_arg.five.c) >=
+            50) {
+          match.at<ushort>(i, j) = 255;
+        } else {
+          match.at<ushort>(i, j) = 0;
+        }
+      }
+
+      if (i >= 400 && i < 480) {
+        if (-match.at<ushort>(i, j) +
+                (plan_arg.six.a * j + (plan_arg.six.b) * i + plan_arg.six.c) >=
+            50) {
+          match.at<ushort>(i, j) = 255;
+        } else {
+          match.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+  }
+  match.convertTo(match, CV_8UC1, 1);
+  cv::imshow("match", match);
+  cv::waitKey(1);
+}
+
+bool D435::PlaneFitting(const std::vector<Vector3VP> &points_input,
+                        double *center, double *normal) {
+  int Num = points_input.size();
+  std::vector<std::shared_ptr<GRANSAC::AbstractParameter>> CandPoints;
+  CandPoints.resize(Num);
+#pragma omp parallel for num_threads(6)
+  for (int i = 0; i < Num; ++i) {
+    Vector3VP p = points_input[i];
+    std::shared_ptr<GRANSAC::AbstractParameter> CandPt =
+        std::make_shared<Point3D>(p[0], p[1], p[2]);
+    CandPoints[i] = CandPt;
+  }
+
+  GRANSAC::RANSAC<PlaneModel, 3> Estimator;
+  Estimator.Initialize(0.1, 100);  // Threshold, iterations
+
+  int64_t start = cv::getTickCount();
+  Estimator.Estimate(CandPoints);
+  int64_t end = cv::getTickCount();
+  std::cout << "RANSAC took: "
+            << GRANSAC::VPFloat(end - start) /
+                   GRANSAC::VPFloat(cv::getTickFrequency()) * 1000.0
+            << " ms." << std::endl;
+
+  auto BestPlane = Estimator.GetBestModel();
+  if (BestPlane == nullptr) {
+    return false;
+  }
+  for (int i = 0; i < 3; i++) {
+    center[i] = BestPlane->m_PointCenter[i];
+  }
+  for (int i = 0; i < 4; i++) {
+    normal[i] = BestPlane->m_PlaneCoefs[i];
+  }
+
+  return true;
+}
+
+void D435::calibration() {
+
+    
+  std::vector<Vector3VP> point_cloud;
+  std::vector<Vector3VP> point_cloud1;
+  std::vector<Vector3VP> point_cloud2;
+  std::vector<Vector3VP> point_cloud3;
+  std::vector<Vector3VP> point_cloud4;
+  std::vector<Vector3VP> point_cloud5;
+
+  double *center = new double[3];
+  double *coefs = new double[4];
+  double *coefs1 = new double[4];
+  double *coefs2 = new double[4];
+  double *coefs3 = new double[4];
+  double *coefs4 = new double[4];
+  double *coefs5 = new double[4];
+  int add_num = 80;
+
+  for (double i = 0; i < add_num; i++) {
+    for (double j = 0; j < depth_data.cols; j++) {
+      if (depth_data.at<ushort>(i, j) == 0 ||
+          depth_data.at<ushort>(i, j) > 65000) {
+        continue;
+      } else {
+        Vector3VP Pt3d = {j, i,
+                          static_cast<double>(depth_data.at<ushort>(i, j))};
+        point_cloud.push_back(Pt3d);
+        //   std::cout << static_cast<double>(depth_data.at<ushort>(i, j)) <<
+        //   std::endl;
+      }
+    }
+  }
+
+  for (double i = add_num; i < add_num * 2; i++) {
+    for (double j = 0; j < depth_data.cols; j++) {
+      if (depth_data.at<ushort>(i, j) == 0 ||
+          depth_data.at<ushort>(i, j) > 65000) {
+        continue;
+      } else {
+        Vector3VP Pt3d = {j, i,
+                          static_cast<double>(depth_data.at<ushort>(i, j))};
+        point_cloud1.push_back(Pt3d);
+        // std::cout << static_cast<double>(depth_data.at<ushort>(i, j))
+        //           << std::endl;
+      }
+    }
+  }
+
+  for (double i = add_num * 2; i < add_num * 3; i++) {
+    for (double j = 0; j < depth_data.cols; j++) {
+      if (depth_data.at<ushort>(i, j) == 0 ||
+          depth_data.at<ushort>(i, j) > 65000) {
+        continue;
+      } else {
+        Vector3VP Pt3d = {j, i,
+                          static_cast<double>(depth_data.at<ushort>(i, j))};
+        point_cloud2.push_back(Pt3d);
+        // std::cout << static_cast<double>(depth_data.at<ushort>(i, j))
+        //           << std::endl;
+      }
+    }
+  }
+
+  for (double i = add_num * 3; i < add_num * 4; i++) {
+    for (double j = 0; j < depth_data.cols; j++) {
+      if (depth_data.at<ushort>(i, j) == 0 ||
+          depth_data.at<ushort>(i, j) > 65000) {
+        continue;
+      } else {
+        Vector3VP Pt3d = {j, i,
+                          static_cast<double>(depth_data.at<ushort>(i, j))};
+        point_cloud3.push_back(Pt3d);
+        // std::cout << static_cast<double>(depth_data.at<ushort>(i, j))
+        //           << std::endl;
+      }
+    }
+  }
+
+  for (double i = add_num * 4; i < add_num * 5; i++) {
+    for (double j = 0; j < depth_data.cols; j++) {
+      if (depth_data.at<ushort>(i, j) == 0 ||
+          depth_data.at<ushort>(i, j) > 65000) {
+        continue;
+      } else {
+        Vector3VP Pt3d = {j, i,
+                          static_cast<double>(depth_data.at<ushort>(i, j))};
+        point_cloud4.push_back(Pt3d);
+        // std::cout << depth_data.at<ushort>(i, j) << " ";
+        // std::cout << static_cast<double>(depth_data.at<ushort>(i, j))
+        //           << std::endl;
+      }
+    }
+  }
+
+  for (double i = add_num * 5; i < add_num * 6; i++) {
+    for (double j = 0; j < depth_data.cols; j++) {
+      if (depth_data.at<ushort>(i, j) == 0 ||
+          depth_data.at<ushort>(i, j) > 65000) {
+        continue;
+      } else {
+        Vector3VP Pt3d = {j, i,
+                          static_cast<double>(depth_data.at<ushort>(i, j))};
+        point_cloud5.push_back(Pt3d);
+        // std::cout << static_cast<double>(depth_data.at<ushort>(i, j))
+        //           << std::endl;
+      }
+    }
+  }
+
+  //   Vector3VP Pt3d = {x, y, z};
+
+  //   point_cloud.push_back(Pt3d);
+  // }
+  // }
+  //   for (int i = 0; i < 300; i++) {
+  //     for (int j = 0; j < 400; j++) {
+  //       double x = double(i);
+  //       double y = double(j);
+  //       double z = a * x + b * y + d + rng.gaussian(w_sigma);
+
+  //       Vector3VP Pt3d = {x, y, z};
+
+  //       point_cloud.push_back(Pt3d);
+  //     }
+  //   }
+  // perform Plane Fitting Algorithm
+  PlaneFitting(point_cloud, center, coefs);
+  for (int i = 0; i < 4; i++) {
+    std::cout << coefs[i] << std::endl;
+  }
+  plan_arg.fir.a = coefs[0];
+  plan_arg.fir.b = coefs[1];
+  plan_arg.fir.c = coefs[3];
+  std::cout << "plan_arg" << plan_arg.fir.a << " " << plan_arg.fir.b << " "
+            << plan_arg.fir.c << std::endl;
+  std::cout << std::endl;
+
+  PlaneFitting(point_cloud1, center, coefs1);
+  for (int i = 0; i < 4; i++) {
+    std::cout << coefs1[i] << std::endl;
+  }
+  plan_arg.sec.a = coefs1[0];
+  plan_arg.sec.b = coefs1[1];
+  plan_arg.sec.c = coefs1[3];
+  std::cout << std::endl;
+
+  PlaneFitting(point_cloud2, center, coefs2);
+  for (int i = 0; i < 4; i++) {
+    std::cout << coefs2[i] << std::endl;
+  }
+  plan_arg.thrid.a = coefs2[0];
+  plan_arg.thrid.b = coefs2[1];
+  plan_arg.thrid.c = coefs2[3];
+  std::cout << std::endl;
+
+  PlaneFitting(point_cloud3, center, coefs3);
+  for (int i = 0; i < 4; i++) {
+    std::cout << coefs3[i] << std::endl;
+  }
+  plan_arg.four.a = coefs3[0];
+  plan_arg.four.b = coefs3[1];
+  plan_arg.four.c = coefs3[3];
+  std::cout << std::endl;
+
+  PlaneFitting(point_cloud4, center, coefs4);
+  for (int i = 0; i < 4; i++) {
+    std::cout << coefs4[i] << std::endl;
+  }
+  plan_arg.five.a = coefs4[0];
+  plan_arg.five.b = coefs4[1];
+  plan_arg.five.c = coefs4[3];
+  std::cout << std::endl;
+  PlaneFitting(point_cloud5, center, coefs5);
+  for (int i = 0; i < 4; i++) {
+    std::cout << coefs5[i] << std::endl;
+  }
+  plan_arg.six.a = coefs5[0];
+  plan_arg.six.b = coefs5[1];
+  plan_arg.six.c = coefs5[3];
+  std::cout << std::endl;
+}
+
 void D435::handle_depth() {
   cv::Mat data;
   data = depth_data.clone();
@@ -557,9 +852,15 @@ void D435::handle_depth() {
 }
 
 void D435::HandleFeedbackData() {
+
+  get_depth();
+  cv::imwrite("calibration.png", depth_data);
+  calibration();
+
   while (1) {
     get_depth();
-    separate_byte();
+    matching();
+    // separate_byte();
     // caculate_thread4();
     // handle_depth();
   }
