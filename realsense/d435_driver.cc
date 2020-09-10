@@ -5,10 +5,10 @@
 
 #include <opencv2/imgproc/types_c.h>
 
+#include <fstream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <fstream>
 
 void D435::Init() {
   // rs2::context ctx;
@@ -642,8 +642,6 @@ bool D435::PlaneFitting(const std::vector<Vector3VP> &points_input,
 }
 
 void D435::calibration() {
-
-    
   std::vector<Vector3VP> point_cloud;
   std::vector<Vector3VP> point_cloud1;
   std::vector<Vector3VP> point_cloud2;
@@ -852,11 +850,74 @@ void D435::handle_depth() {
 }
 
 void D435::HandleFeedbackData() {
+  std::fstream calibration_data;
+  calibration_data.open("calibration_data.csv", std::ios::out);
+  if (calibration_data.is_open()) {
+    std::cout << "calibration_data.csv file open sucess" << std::endl;
+  } else {
+    std::cout << "calibration_data.csv file open failed" << std::endl;
+  }
 
-  get_depth();
-  cv::imwrite("calibration.png", depth_data);
-  calibration();
+  calibration_data << "1-a"
+                   << ","
+                   << "1-b"
+                   << ","
+                   << "1-c"
+                   << ","
+                   << "2-a"
+                   << ","
+                   << "2-b"
+                   << ","
+                   << "2-c"
+                   << ","
+                   << "3-a"
+                   << ","
+                   << "3-b"
+                   << ","
+                   << "3-c"
+                   << ","
+                   << "4-a"
+                   << ","
+                   << "4-b"
+                   << ","
+                   << "4-c"
+                   << ","
+                   << "5-a"
+                   << ","
+                   << "5-b"
+                   << ","
+                   << "5-c"
+                   << ","
+                   << "6-a"
+                   << ","
+                   << "6-b"
+                   << ","
+                   << "6-c" << std::endl;
+  for (int i = 0; i < 5; i++) {
+    std::string file_name("calibration");
+    file_name = file_name + std::to_string(i+1) + ".png";
+    get_depth();
+    cv::imwrite(file_name, depth_data);
+    calibration();
+    /*
+          标定数据保存
+ */
 
+    calibration_data << plan_arg.fir.a << "," << plan_arg.fir.b << ","
+                     << plan_arg.fir.c << ",";
+    calibration_data << plan_arg.sec.a << "," << plan_arg.sec.b << ","
+                     << plan_arg.sec.c << ",";
+    calibration_data << plan_arg.thrid.a << "," << plan_arg.thrid.b << ","
+                     << plan_arg.thrid.c << ",";
+    calibration_data << plan_arg.four.a << "," << plan_arg.four.b << ","
+                     << plan_arg.four.c << ",";
+    calibration_data << plan_arg.five.a << "," << plan_arg.five.b << ","
+                     << plan_arg.five.c << ",";
+    calibration_data << plan_arg.six.a << "," << plan_arg.six.b << ","
+                     << plan_arg.six.c << "," << std::endl;
+    cv::waitKey(1000);
+  }
+  calibration_data.close();
   while (1) {
     get_depth();
     matching();
