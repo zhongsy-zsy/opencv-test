@@ -46,6 +46,8 @@ class D435 {
   bool PlaneFitting(const std::vector<Vector3VP> &points_input, double *center,
                     double *normal);
   void calibration();
+  cv::Mat show_depth(int row_start, int row_end, int col_start, int col_end);
+  void start_calibration();
 
  private:
   //自定义接口
@@ -79,5 +81,6 @@ class D435 {
   double thread5;
   double thread6;
   argument plan_arg;
+  std::fstream calibration_data;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

@@ -9,6 +9,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <string>
 
 void D435::Init() {
   // rs2::context ctx;
@@ -122,11 +123,29 @@ void D435::get_depth() {
                 (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
   //   cv::imshow("depth", depth);
   //   cv::waitKey(1);
-  cv::Mat display = depth.clone();
-  display.convertTo(display, CV_8UC1, 255.0 / 7000.0, 0.0);
-  cv::imshow("depth", display);
-  cv::waitKey(1);
+  //   cv::Mat display = depth.clone();
+  //   display.convertTo(display, CV_8UC1, 255.0 / 7000.0, 0.0);
+  //   cv::imshow("depth", display);
+  //   cv::waitKey(1);
   depth.copyTo(depth_data);
+}
+
+cv::Mat D435::show_depth(int row_start, int row_end, int col_start,
+                         int col_end) {
+  cv::Mat display_depth = depth_data.clone();
+  for (int i = 0; i < display_depth.rows; i++) {
+    for (int j = 0; j < display_depth.cols; j++) {
+      if (i < row_start || i > row_end || j < col_start || j > col_end) {
+        display_depth.at<ushort>(i, j) = 0;
+      }
+    }
+  }
+
+  cv::Mat res = display_depth.clone();
+  display_depth.convertTo(display_depth, CV_8UC1, 255.0 / 10000);
+  cv::imshow("diaplay_depth", display_depth);
+  cv::waitKey(1);
+  return res;
 }
 
 void D435::mask_depth(cv::Mat &image, int throld) {
@@ -849,8 +868,7 @@ void D435::handle_depth() {
   calculate_mindistance();
 }
 
-void D435::HandleFeedbackData() {
-  std::fstream calibration_data;
+void D435::start_calibration() {
   calibration_data.open("calibration_data.csv", std::ios::out);
   if (calibration_data.is_open()) {
     std::cout << "calibration_data.csv file open sucess" << std::endl;
@@ -893,31 +911,77 @@ void D435::HandleFeedbackData() {
                    << "6-b"
                    << ","
                    << "6-c" << std::endl;
-  for (int i = 0; i < 5; i++) {
-    std::string file_name("calibration");
-    file_name = file_name + std::to_string(i+1) + ".png";
+  int i = 0;
+  int row_start;
+  int row_end;
+  int col_start;
+  int col_end;
+  char in_cal = 'q';
+  while (in_cal == 'q') {
+    i = 0;
+    std::cout << "please input row_start row_end col_start col_end"
+              << std::endl;
+    std::cin >> row_start;
+    std::cin >> row_end;
+    std::cin >> col_start;
+    std::cin >> col_end;
+    std::cout << "row_start:" << row_start << " "
+              << "row_end:" << row_end << " "
+              << "col_start:" << col_start << " "
+              << "col_end:" << col_end << std::endl;
+    std::cout << "please ensure args q or t" << std::endl;
+    while (i != 50) {
+      i++;
+      get_depth();
+      depth_data = show_depth(row_start, row_end, col_start, col_end);
+    }
+    std::cin >> in_cal;
+    if (in_cal == 't') {
+      break;
+    } else {
+      in_cal = 'q';
+    }
+  }
+  i = 0;
+  while (i != 5) {
+    char choose;
+    std::cout << "plaese select t: true   q:quit" << std::endl;
     get_depth();
-    cv::imwrite(file_name, depth_data);
-    calibration();
-    /*
-          标定数据保存
- */
+    depth_data = show_depth(0, 480, 0, 550);
+    std::cin >> choose;
+    if (choose == 't') {
+      std::string file_name("calibration");
+      file_name = file_name + std::to_string(i + 1) + ".png";
+      i++;
+      calibration();
+      cv::imwrite(file_name, depth_data);
 
-    calibration_data << plan_arg.fir.a << "," << plan_arg.fir.b << ","
-                     << plan_arg.fir.c << ",";
-    calibration_data << plan_arg.sec.a << "," << plan_arg.sec.b << ","
-                     << plan_arg.sec.c << ",";
-    calibration_data << plan_arg.thrid.a << "," << plan_arg.thrid.b << ","
-                     << plan_arg.thrid.c << ",";
-    calibration_data << plan_arg.four.a << "," << plan_arg.four.b << ","
-                     << plan_arg.four.c << ",";
-    calibration_data << plan_arg.five.a << "," << plan_arg.five.b << ","
-                     << plan_arg.five.c << ",";
-    calibration_data << plan_arg.six.a << "," << plan_arg.six.b << ","
-                     << plan_arg.six.c << "," << std::endl;
-    cv::waitKey(1000);
+      /*
+            标定数据保存
+   */
+
+      calibration_data << plan_arg.fir.a << "," << plan_arg.fir.b << ","
+                       << plan_arg.fir.c << ",";
+      calibration_data << plan_arg.sec.a << "," << plan_arg.sec.b << ","
+                       << plan_arg.sec.c << ",";
+      calibration_data << plan_arg.thrid.a << "," << plan_arg.thrid.b << ","
+                       << plan_arg.thrid.c << ",";
+      calibration_data << plan_arg.four.a << "," << plan_arg.four.b << ","
+                       << plan_arg.four.c << ",";
+      calibration_data << plan_arg.five.a << "," << plan_arg.five.b << ","
+                       << plan_arg.five.c << ",";
+      calibration_data << plan_arg.six.a << "," << plan_arg.six.b << ","
+                       << plan_arg.six.c << "," << std::endl;
+      cv::waitKey(1000);
+    } else if (choose == 'q') {
+      continue;
+    }
   }
   calibration_data.close();
+}
+
+void D435::HandleFeedbackData() {
+  start_calibration();
   while (1) {
     get_depth();
     matching();
