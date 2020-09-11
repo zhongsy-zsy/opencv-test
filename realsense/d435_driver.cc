@@ -919,7 +919,7 @@ void D435::start_calibration() {
   char in_cal = 'q';
   while (in_cal == 'q') {
     i = 0;
-    std::cout << "please input row_start row_end col_start col_end"
+    std::cout << "please input row_start row_end col_start col_end **rows: 0-480** **cols: 0-640**"
               << std::endl;
     std::cin >> row_start;
     std::cin >> row_end;
@@ -929,7 +929,7 @@ void D435::start_calibration() {
               << "row_end:" << row_end << " "
               << "col_start:" << col_start << " "
               << "col_end:" << col_end << std::endl;
-    std::cout << "please ensure args q or t" << std::endl;
+    std::cout << "please ensure args q or t  q: quit  t: true" << std::endl;
     while (i != 50) {
       i++;
       get_depth();
@@ -947,7 +947,7 @@ void D435::start_calibration() {
     char choose;
     std::cout << "plaese select t: true   q:quit" << std::endl;
     get_depth();
-    depth_data = show_depth(0, 480, 0, 550);
+    depth_data = show_depth(row_start, row_end, col_start, col_end);
     std::cin >> choose;
     if (choose == 't') {
       std::string file_name("calibration");
