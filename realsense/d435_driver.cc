@@ -555,64 +555,64 @@ void D435::matching() {
     for (int j = 0; j < match.cols; j++) {
       if (i >= 0 && i < 80) {
         if (-match.at<ushort>(i, j) +
-                (plan_arg.fir.a * j + (plan_arg.fir.b) * i + plan_arg.fir.c) >=
-            45) {
-          match.at<ushort>(i, j) = 255;
-        } else {
+                (plan_arg.fir.a * j + (plan_arg.fir.b) * i + plan_arg.fir.c) <=
+            40) {
           match.at<ushort>(i, j) = 0;
+        } else {
+          match.at<ushort>(i, j) = 255;
         }
       }
 
       if (i >= 80 && i < 160) {
         if (-match.at<ushort>(i, j) +
-                (plan_arg.sec.a * j + (plan_arg.sec.b) * i + plan_arg.sec.c) >=
+                (plan_arg.sec.a * j + (plan_arg.sec.b) * i + plan_arg.sec.c) <=
             45) {
-          match.at<ushort>(i, j) = 255;
-        } else {
           match.at<ushort>(i, j) = 0;
+        } else {
+          match.at<ushort>(i, j) = 255;
         }
       }
 
       if (i >= 160 && i < 240) {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.thrid.a * j + (plan_arg.thrid.b) * i +
-                 plan_arg.thrid.c) >=
-            50) {
-          match.at<ushort>(i, j) = 255;
-        } else {
+                 plan_arg.thrid.c) <=
+            305) {
           match.at<ushort>(i, j) = 0;
+        } else {
+          match.at<ushort>(i, j) = 255;
         }
       }
 
       if (i >= 240 && i < 320) {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.four.a * j + (plan_arg.four.b) * i +
-                 plan_arg.four.c) >=
-            50) {
-          match.at<ushort>(i, j) = 255;
-        } else {
+                 plan_arg.four.c) <=
+            135) {
           match.at<ushort>(i, j) = 0;
+        } else {
+          match.at<ushort>(i, j) = 255;
         }
       }
 
       if (i >= 320 && i < 400) {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.five.a * j + (plan_arg.five.b) * i +
-                 plan_arg.five.c) >=
-            50) {
-          match.at<ushort>(i, j) = 255;
-        } else {
+                 plan_arg.five.c) <=
+            90) {
           match.at<ushort>(i, j) = 0;
+        } else {
+          match.at<ushort>(i, j) = 255;
         }
       }
 
       if (i >= 400 && i < 480) {
         if (-match.at<ushort>(i, j) +
-                (plan_arg.six.a * j + (plan_arg.six.b) * i + plan_arg.six.c) >=
-            50) {
-          match.at<ushort>(i, j) = 255;
-        } else {
+                (plan_arg.six.a * j + (plan_arg.six.b) * i + plan_arg.six.c) <=
+            60) {
           match.at<ushort>(i, j) = 0;
+        } else {
+          match.at<ushort>(i, j) = 255;
         }
       }
     }
@@ -919,7 +919,8 @@ void D435::start_calibration() {
   char in_cal = 'q';
   while (in_cal == 'q') {
     i = 0;
-    std::cout << "please input row_start row_end col_start col_end **rows: 0-480** **cols: 0-640**"
+    std::cout << "please input row_start row_end col_start col_end **rows: "
+                 "0-480** **cols: 0-640**"
               << std::endl;
     std::cin >> row_start;
     std::cin >> row_end;
@@ -980,13 +981,79 @@ void D435::start_calibration() {
   calibration_data.close();
 }
 
-void D435::HandleFeedbackData() {
-  start_calibration();
+void D435::get_mean_depth() {
+  cv::Mat_<double> count(480, 640);
+  cv::Mat_<double> result(480, 640);
+  for (int k = 0; k <= 200; k++) {
+    std::string depth_name("calibration_data");
+    depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
+                 depth_name + std::to_string(k + 1) + ".png";
+    get_depth();
+    cv::imwrite(depth_name, depth_data);
+    for (int i = 0; i < depth_data.rows; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (depth_data.at<ushort>(i, j) == 0 ||
+            depth_data.at<ushort>(i, j) > 10000) {
+          continue;
+        }
+        count.at<double>(i, j)++;
+        result.at<double>(i, j) +=
+            static_cast<double>(depth_data.at<ushort>(i, j));
+      }
+    }
+  }
+  for (int i = 0; i < result.rows; i++) {
+    for (int j = 0; j < result.cols; j++) {
+      if (count.at<double>(i, j) == 0) {
+        result.at<double>(i, j) = 0;
+        continue;
+      }
+      result.at<double>(i, j) =
+          result.at<double>(i, j) / count.at<double>(i, j);
+    }
+  }
+  cv::imwrite("mean_depth.png", result);
   while (1) {
     get_depth();
-    matching();
-    // separate_byte();
-    // caculate_thread4();
-    // handle_depth();
+    for (int i = 0; i < depth_data.rows; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (result.at<double>(i, j) -
+                static_cast<double>(depth_data.at<ushort>(i, j)) <
+            50) {
+          depth_data.at<ushort>(i, j) = 0;
+        } else {
+          depth_data.at<ushort>(i, j) = 255;
+        }
+      }
+    }
+    // std::cout << result << std::endl;
+    depth_data.convertTo(depth_data, CV_8UC1, 1);
+    cv::imshow("depth_mean", depth_data);
+    cv::waitKey(1);
   }
+}
+
+void D435::save_depth_image() {
+  for (int i = 1; i <= 200; i++) {
+    std::string depth_name("calibration_data");
+    get_depth();
+    depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
+                 depth_name + std::to_string(i) + ".png";
+    cv::imwrite(depth_name, depth_data);
+    std::cout << "save depthimage: " << i << std::endl;
+    cv::waitKey(20);
+  }
+}
+
+void D435::HandleFeedbackData() {
+  get_mean_depth();
+  //   start_calibration();
+  //   save_depth_image();
+  //   while (1) {
+  //     get_depth();
+  //     matching();
+  //     // separate_byte();
+  //     // caculate_thread4();
+  //     // handle_depth();
+  //   }
 }

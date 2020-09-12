@@ -43,6 +43,8 @@ class D435 {
   void GetData(void *data);
   void separate_byte();
   void matching();
+  void save_depth_image();
+  void get_mean_depth();  // 获取平均地面值
   bool PlaneFitting(const std::vector<Vector3VP> &points_input, double *center,
                     double *normal);
   void calibration();
