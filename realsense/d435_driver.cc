@@ -1095,9 +1095,14 @@ void D435::get_mean_depth() {
     // std::cout << result << std::endl;
     cv::Mat element1 = cv::getStructuringElement(
         cv::MORPH_RECT, cv::Size(12, 12));  // 操作核的大小
-    cv::morphologyEx(depth_data, depth_data, cv::MORPH_CLOSE, element1);  // 开操作
-    // cv::threshold(depth_data,depth_data,100,)
-    // depth_data.convertTo(depth_data, CV_8UC1, 1);
+    cv::morphologyEx(depth_data, depth_data, cv::MORPH_CLOSE,
+                     element1);  // 开操作
+    cv::threshold(depth_data, depth_data, 100, 255,
+                  cv::THRESH_BINARY_INV);  // 黑白倒转
+    cv::Mat element2 = cv::getStructuringElement(
+        cv::MORPH_RECT, cv::Size(4, 4));  // 操作核的大小
+    cv::dilate(depth_data, depth_data, element2);
+    depth_data.convertTo(depth_data, CV_8UC1, 1);
     cv::imshow("depth_mean", depth_data);
     cv::waitKey(1);
   }
