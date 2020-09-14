@@ -67,9 +67,11 @@ class D435 {
   rs2::context ctx;
   rs2::frameset frames;
   rs2::pipeline pipe;
-  rs2::spatial_filter spat_filter;
+  rs2::spatial_filter spatial_filter;
   rs2::threshold_filter thd_filter;
   rs2::hole_filling_filter hole_filter;
+  rs2::decimation_filter decimation_filter;
+  rs2::temporal_filter temporal_filter;
   rs2::colorizer colorizered;
   rs2::device_list dev_list;
   rs2::device dev;
