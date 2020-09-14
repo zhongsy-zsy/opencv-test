@@ -577,7 +577,7 @@ void D435::matching() {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.thrid.a * j + (plan_arg.thrid.b) * i +
                  plan_arg.thrid.c) <=
-            305) {
+            1260) {
           match.at<ushort>(i, j) = 0;
         } else {
           match.at<ushort>(i, j) = 255;
@@ -588,7 +588,7 @@ void D435::matching() {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.four.a * j + (plan_arg.four.b) * i +
                  plan_arg.four.c) <=
-            135) {
+            190) {
           match.at<ushort>(i, j) = 0;
         } else {
           match.at<ushort>(i, j) = 255;
@@ -599,7 +599,7 @@ void D435::matching() {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.five.a * j + (plan_arg.five.b) * i +
                  plan_arg.five.c) <=
-            90) {
+            100) {
           match.at<ushort>(i, j) = 0;
         } else {
           match.at<ushort>(i, j) = 255;
@@ -609,7 +609,7 @@ void D435::matching() {
       if (i >= 400 && i < 480) {
         if (-match.at<ushort>(i, j) +
                 (plan_arg.six.a * j + (plan_arg.six.b) * i + plan_arg.six.c) <=
-            60) {
+            80) {
           match.at<ushort>(i, j) = 0;
         } else {
           match.at<ushort>(i, j) = 255;
@@ -1012,22 +1012,92 @@ void D435::get_mean_depth() {
           result.at<double>(i, j) / count.at<double>(i, j);
     }
   }
-  cv::imwrite("mean_depth.png", result);
+
+  cv::Mat conv;
+  conv.create(480, 640, CV_16UC1);
+  conv = result;
+  conv.convertTo(conv, CV_16UC1, 1);
+  cv::imwrite("mean_depth.png", conv);
+  //   std::cout << conv << std::endl;
   while (1) {
     get_depth();
-    for (int i = 0; i < depth_data.rows; i++) {
+    for (int i = 0; i < 80; i++) {
       for (int j = 0; j < depth_data.cols; j++) {
         if (result.at<double>(i, j) -
                 static_cast<double>(depth_data.at<ushort>(i, j)) <
-            50) {
-          depth_data.at<ushort>(i, j) = 0;
-        } else {
+            1670) {
           depth_data.at<ushort>(i, j) = 255;
+        } else {
+          depth_data.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+
+    for (int i = 80; i < 160; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (result.at<double>(i, j) -
+                static_cast<double>(depth_data.at<ushort>(i, j)) <
+            1570) {
+          depth_data.at<ushort>(i, j) = 255;
+        } else {
+          depth_data.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+
+    for (int i = 160; i < 240; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (result.at<double>(i, j) -
+                static_cast<double>(depth_data.at<ushort>(i, j)) <
+            370) {
+          depth_data.at<ushort>(i, j) = 255;
+        } else {
+          depth_data.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+
+    for (int i = 240; i < 320; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (result.at<double>(i, j) -
+                static_cast<double>(depth_data.at<ushort>(i, j)) <
+            100) {
+          depth_data.at<ushort>(i, j) = 255;
+        } else {
+          depth_data.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+
+    for (int i = 320; i < 400; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (result.at<double>(i, j) -
+                static_cast<double>(depth_data.at<ushort>(i, j)) <
+            40) {
+          depth_data.at<ushort>(i, j) = 255;
+        } else {
+          depth_data.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+
+    for (int i = 400; i < 480; i++) {
+      for (int j = 0; j < depth_data.cols; j++) {
+        if (result.at<double>(i, j) -
+                static_cast<double>(depth_data.at<ushort>(i, j)) <
+            45) {
+          depth_data.at<ushort>(i, j) = 255;
+        } else {
+          depth_data.at<ushort>(i, j) = 0;
         }
       }
     }
     // std::cout << result << std::endl;
-    depth_data.convertTo(depth_data, CV_8UC1, 1);
+    cv::Mat element1 = cv::getStructuringElement(
+        cv::MORPH_RECT, cv::Size(12, 12));  // 操作核的大小
+    cv::morphologyEx(depth_data, depth_data, cv::MORPH_CLOSE, element1);  // 开操作
+    // cv::threshold(depth_data,depth_data,100,)
+    // depth_data.convertTo(depth_data, CV_8UC1, 1);
     cv::imshow("depth_mean", depth_data);
     cv::waitKey(1);
   }
@@ -1047,13 +1117,13 @@ void D435::save_depth_image() {
 
 void D435::HandleFeedbackData() {
   get_mean_depth();
-  //   start_calibration();
+  // start_calibration();
   //   save_depth_image();
-  //   while (1) {
-  //     get_depth();
-  //     matching();
+  // while (1) {
+  //   get_depth();
+  //   matching();
   //     // separate_byte();
   //     // caculate_thread4();
   //     // handle_depth();
-  //   }
+  // }
 }
