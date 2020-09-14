@@ -1018,6 +1018,7 @@ void D435::start_calibration() {
 void D435::get_mean_depth() {
   cv::Mat_<double> count(480, 640);
   cv::Mat_<double> result(480, 640);
+  cv::waitKey(50);
   for (int k = 0; k <= 200; k++) {
     std::string depth_name("calibration_data");
     depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
@@ -1027,7 +1028,7 @@ void D435::get_mean_depth() {
     for (int i = 0; i < depth_data.rows; i++) {
       for (int j = 0; j < depth_data.cols; j++) {
         if (depth_data.at<ushort>(i, j) == 0 ||
-            depth_data.at<ushort>(i, j) > 10000) {
+            depth_data.at<ushort>(i, j) > 15000) {
           continue;
         }
         count.at<double>(i, j)++;
@@ -1035,6 +1036,7 @@ void D435::get_mean_depth() {
             static_cast<double>(depth_data.at<ushort>(i, j));
       }
     }
+    cv::waitKey(10);
   }
   for (int i = 0; i < result.rows; i++) {
     for (int j = 0; j < result.cols; j++) {
