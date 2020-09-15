@@ -50,11 +50,14 @@ class D435 {
   void calibration();
   cv::Mat show_depth(int row_start, int row_end, int col_start, int col_end);
   void start_calibration();
+  void calculate_poly(cv::Mat mean_depth);
 
  private:
   //自定义接口
   void HandleFeedbackData();
   void get_depth();
+  std::vector<double> polyfit(std::vector<cv::Point> &in_point,
+                              int n);  // 计算多项式参数函数
   void handle_depth();
   void quit_black_block(cv::Mat &image);
   void mask_depth(cv::Mat &image, int throld = 3000);
@@ -77,7 +80,7 @@ class D435 {
   rs2::device dev;
   cv::Mat depth_data;
   double min_distance;
-  std::vector<std::vector<cv::Point> > result;  //存放凸包
+  std::vector<std::vector<cv::Point>> result;  //存放凸包
   double thread1;
   double thread2;
   double thread3;
@@ -86,5 +89,7 @@ class D435 {
   double thread6;
   argument plan_arg;
   std::fstream calibration_data;
+  std::vector<std::vector<double>> poly;
+  std::vector<double> threshold_data;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

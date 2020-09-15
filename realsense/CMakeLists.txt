@@ -20,13 +20,19 @@ ENDIF()
 
 add_library(${PROJECT_NAME}
  d435_driver.cc
+ common_op.cc
 )
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
-include_directories( ${realsense2_INCLUDE_DIRS})
+include_directories( ${realsense2_INCLUDE_DIRS}
+)
 
 add_executable(main class_main.cc )
+add_executable(cali calibration.cc )
+# add_executable(yuzhi common_op.cc )
+
 
 target_link_libraries( main ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
-
+target_link_libraries( cali ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
+# target_link_libraries( yuzhi ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
 

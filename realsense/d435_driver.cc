@@ -11,6 +11,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
 
+#include "common_op.h"
+
 void D435::Init() {
   // rs2::context ctx;
   //获取设备列表
@@ -155,12 +157,12 @@ void D435::get_depth() {
   filtered_frame = depth_transform.process(filtered_frame);
   cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
                 (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
-    cv::imshow("depth", depth);
-    cv::waitKey(1);
-    cv::Mat display = depth.clone();
-    display.convertTo(display, CV_8UC1, 255.0 / 7000.0, 0.0);
-    cv::imshow("depth", display);
-    cv::waitKey(1);
+  cv::imshow("depth", depth);
+  cv::waitKey(1);
+  cv::Mat display = depth.clone();
+  display.convertTo(display, CV_8UC1, 255.0 / 7000.0, 0.0);
+  cv::imshow("depth", display);
+  cv::waitKey(1);
   depth.copyTo(depth_data);
 }
 
@@ -1015,16 +1017,77 @@ void D435::start_calibration() {
   calibration_data.close();
 }
 
+/* 计算多项式参数 */
+
+void D435::calculate_poly(cv::Mat mean_depth) {
+  for (int i = 0; i < mean_depth.rows; i++) {
+    std::vector<cv::Point> in_points;
+
+    for (int j = 0; j < mean_depth.cols; j++) {
+      in_points.push_back(cv::Point(j, mean_depth.at<ushort>(i, j)));
+    }
+    std::vector<double> res;
+    res = polyfit(in_points, 5);
+    poly.push_back(res);
+    std::cout << "heni" << i << std::endl;
+    std::cout << std::endl;
+    in_points.clear();
+    res.clear();
+  }
+}
+
+std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
+  int size = in_point.size();
+  //所求未知数个数
+  int x_num = n + 1;
+  // 构造矩阵U和Y
+  cv::Mat mat_u(size, x_num, CV_64F);
+  cv::Mat mat_y(size, 1, CV_64F);
+
+  for (int i = 0; i < mat_u.rows; ++i)
+    for (int j = 0; j < mat_u.cols; ++j) {
+      mat_u.at<double>(i, j) = pow(in_point[i].x, j);
+    }
+
+  for (int i = 0; i < mat_y.rows; ++i) {
+    mat_y.at<double>(i, 0) = in_point[i].y;
+  }
+
+  // 矩阵运算，获得系数矩阵K
+  cv::Mat mat_k(x_num, 1, CV_64F);
+  mat_k = (mat_u.t() * mat_u).inv() * mat_u.t() * mat_y;
+  std::vector<double> res;
+  for (int i = 0; i < mat_k.rows; i++) {
+    std::cout << mat_k.at<float>(i, 0) << std::endl;
+    res.push_back(static_cast<double>(mat_k.at<float>(i, 0)));
+  }
+  return res;
+
+  //   return mat_k;
+}
+
+/* 计算多项式参数 */
 void D435::get_mean_depth() {
+  int left_edge = 200;
+  int right_edge = 440;
+  int top_edge = 20;
+  int below_edge = 480;
+
+  std::vector<cv::Mat> raw_datas;
   cv::Mat_<double> count(480, 640);
   cv::Mat_<double> result(480, 640);
   cv::waitKey(50);
-  for (int k = 0; k <= 200; k++) {
+
+  for (int k = 0; k <= 299; k++) {
     std::string depth_name("calibration_data");
     depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
                  depth_name + std::to_string(k + 1) + ".png";
     get_depth();
     cv::imwrite(depth_name, depth_data);
+    cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
+                   below_edge - top_edge);
+    cv::Mat raw_data_edge = depth_data(rect1);
+    raw_datas.push_back(depth_data);  //  存放感兴趣区域
     for (int i = 0; i < depth_data.rows; i++) {
       for (int j = 0; j < depth_data.cols; j++) {
         if (depth_data.at<ushort>(i, j) == 0 ||
@@ -1045,99 +1108,151 @@ void D435::get_mean_depth() {
         continue;
       }
       result.at<double>(i, j) =
-          result.at<double>(i, j) / count.at<double>(i, j);
+          static_cast<double>(result.at<double>(i, j) / count.at<double>(i, j));
     }
   }
 
+  cv::Mat tmp_result(480, 640, CV_16UC1);
+  for (int i = 0; i < result.rows; i++) {
+    for (int j = 0; j < result.cols; j++) {
+      tmp_result.at<ushort>(i, j) =
+          static_cast<ushort>(result.at<double>(i, j));
+    }
+  }
+  //   calculate_poly(result);
   cv::Mat conv;
   conv.create(480, 640, CV_16UC1);
   conv = result;
   conv.convertTo(conv, CV_16UC1, 1);
   cv::imwrite("mean_depth.png", conv);
   //   std::cout << conv << std::endl;
+  //   int d = 0;
+  //   std::cout << tmp_result << std::endl;
+
+  cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
+                below_edge - top_edge);
+  cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
+
+  threshold_data = calculate_threshold(tmp_result, raw_datas);
+  for (auto a : threshold_data) {
+    std::cout << a << "  ";
+  }
+  std::cout << std::endl;
+
   while (1) {
+    //     std::cout << "hello you" << d << std::endl;
+    //     d++;
     get_depth();
-    for (int i = 0; i < 80; i++) {
+
+    for (int i = 0; i < depth_data.rows; i++) {
       for (int j = 0; j < depth_data.cols; j++) {
-        if (result.at<double>(i, j) -
-                static_cast<double>(depth_data.at<ushort>(i, j)) <
-            1670) {
-          depth_data.at<ushort>(i, j) = 255;
-        } else {
-          depth_data.at<ushort>(i, j) = 0;
+        // if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
+        //   depth_data.at<ushort>(i, j) = 255;
+        // } else {
+          if (tmp_result.at<ushort>(i, j) - depth_data.at<ushort>(i, j) <
+              static_cast<ushort>(threshold_data[i]) * 2.0) {
+            depth_data.at<ushort>(i, j) = 255;
+          } else {
+            depth_data.at<ushort>(i, j) = 0;
+          }
         }
-      }
+    //   }
     }
 
-    for (int i = 80; i < 160; i++) {
-      for (int j = 0; j < depth_data.cols; j++) {
-        if (result.at<double>(i, j) -
-                static_cast<double>(depth_data.at<ushort>(i, j)) <
-            1570) {
-          depth_data.at<ushort>(i, j) = 255;
-        } else {
-          depth_data.at<ushort>(i, j) = 0;
-        }
-      }
-    }
+    //     for (int i = 0; i < result.rows; i++) {
+    //       for (int j = 0; j < result.cols; j++) {
+    //         double nihe = 0;
+    //         for (int k = 0; k < poly[i].size(); k++) {
+    //           nihe += poly[i][k] * std::pow(j, k);
+    //         }
+    //         if (nihe - depth_data.at<ushort>(i, j) < 60) {
+    //           depth_data.at<ushort>(i, j) = 0;
+    //         } else {
+    //           depth_data.at<ushort>(i, j) = 255;
+    //         }
+    //       }
+    //     }
 
-    for (int i = 160; i < 240; i++) {
-      for (int j = 0; j < depth_data.cols; j++) {
-        if (result.at<double>(i, j) -
-                static_cast<double>(depth_data.at<ushort>(i, j)) <
-            370) {
-          depth_data.at<ushort>(i, j) = 255;
-        } else {
-          depth_data.at<ushort>(i, j) = 0;
-        }
-      }
-    }
+    // for (int i = 0; i < 80; i++) {
+    //   for (int j = 0; j < depth_data.cols; j++) {
+    //     if (result.at<double>(i, j) -
+    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
+    //         1670) {
+    //       depth_data.at<ushort>(i, j) = 255;
+    //     } else {
+    //       depth_data.at<ushort>(i, j) = 0;
+    //     }
+    //   }
+    // }
 
-    for (int i = 240; i < 320; i++) {
-      for (int j = 0; j < depth_data.cols; j++) {
-        if (result.at<double>(i, j) -
-                static_cast<double>(depth_data.at<ushort>(i, j)) <
-            100) {
-          depth_data.at<ushort>(i, j) = 255;
-        } else {
-          depth_data.at<ushort>(i, j) = 0;
-        }
-      }
-    }
+    // for (int i = 80; i < 160; i++) {
+    //   for (int j = 0; j < depth_data.cols; j++) {
+    //     if (result.at<double>(i, j) -
+    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
+    //         1570) {
+    //       depth_data.at<ushort>(i, j) = 255;
+    //     } else {
+    //       depth_data.at<ushort>(i, j) = 0;
+    //     }
+    //   }
+    // }
 
-    for (int i = 320; i < 400; i++) {
-      for (int j = 0; j < depth_data.cols; j++) {
-        if (result.at<double>(i, j) -
-                static_cast<double>(depth_data.at<ushort>(i, j)) <
-            40) {
-          depth_data.at<ushort>(i, j) = 255;
-        } else {
-          depth_data.at<ushort>(i, j) = 0;
-        }
-      }
-    }
+    // for (int i = 160; i < 240; i++) {
+    //   for (int j = 0; j < depth_data.cols; j++) {
+    //     if (result.at<double>(i, j) -
+    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
+    //         370) {
+    //       depth_data.at<ushort>(i, j) = 255;
+    //     } else {
+    //       depth_data.at<ushort>(i, j) = 0;
+    //     }
+    //   }
+    // }
+    // for (int i = 240; i < 320; i++) {
+    //   for (int j = 0; j < depth_data.cols; j++) {
+    //     if (result.at<double>(i, j) -
+    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
+    //         100) {
+    //       depth_data.at<ushort>(i, j) = 255;
+    //     } else {
+    //       depth_data.at<ushort>(i, j) = 0;
+    //     }
+    //   }
+    // }
 
-    for (int i = 400; i < 480; i++) {
-      for (int j = 0; j < depth_data.cols; j++) {
-        if (result.at<double>(i, j) -
-                static_cast<double>(depth_data.at<ushort>(i, j)) <
-            45) {
-          depth_data.at<ushort>(i, j) = 255;
-        } else {
-          depth_data.at<ushort>(i, j) = 0;
-        }
-      }
-    }
-    // std::cout << result << std::endl;
-    cv::Mat element1 = cv::getStructuringElement(
-        cv::MORPH_RECT, cv::Size(13, 13));  // 操作核的大小
-    cv::morphologyEx(depth_data, depth_data, cv::MORPH_CLOSE,
-                     element1);  // 开操作
-    cv::threshold(depth_data, depth_data, 100, 255,
-                  cv::THRESH_BINARY_INV);  // 黑白倒转
-    cv::Mat element2 = cv::getStructuringElement(
-        cv::MORPH_RECT, cv::Size(13, 13));  // 操作核的大小
-    cv::dilate(depth_data, depth_data, element2);
+    // for (int i = 320; i < 400; i++) {
+    //   for (int j = 0; j < depth_data.cols; j++) {
+    //     if (result.at<double>(i, j) -
+    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
+    //         40) {
+    //       depth_data.at<ushort>(i, j) = 255;
+    //     } else {
+    //       depth_data.at<ushort>(i, j) = 0;
+    //     }
+    //   }
+    // }
+
+    // for (int i = 400; i < 480; i++) {
+    //   for (int j = 0; j < depth_data.cols; j++) {
+    //     if (result.at<double>(i, j) -
+    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
+    //         45) {
+    //       depth_data.at<ushort>(i, j) = 255;
+    //     } else {
+    //       depth_data.at<ushort>(i, j) = 0;
+    //     }
+    //   }
+    // }
+    // // std::cout << result << std::endl;
+    // cv::Mat element1 = cv::getStructuringElement(
+    //     cv::MORPH_RECT, cv::Size(13, 13));  // 操作核的大小
+    // cv::morphologyEx(depth_data, depth_data, cv::MORPH_CLOSE,
+    //                  element1);  // 开操作
+    // cv::threshold(depth_data, depth_data, 100, 255,
+    //               cv::THRESH_BINARY_INV);  // 黑白倒转
+    // cv::Mat element2 = cv::getStructuringElement(
+    //     cv::MORPH_RECT, cv::Size(13, 13));  // 操作核的大小
+    // cv::dilate(depth_data, depth_data, element2);
     depth_data.convertTo(depth_data, CV_8UC1, 1);
     cv::imshow("depth_mean", depth_data);
     cv::waitKey(1);
