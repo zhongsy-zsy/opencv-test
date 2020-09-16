@@ -1068,14 +1068,15 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
 
 /* 计算多项式参数 */
 void D435::get_mean_depth() {
-  int left_edge = 180;
-  int right_edge = 420;
+  int left_edge = 200;
+  int right_edge = 450;
   int top_edge = 0;
   int below_edge = 480;
 
   std::vector<cv::Mat> raw_datas;
   cv::Mat_<double> count(480, 640);
   cv::Mat_<double> result(480, 640);
+  //   std::cout << count << std::endl;
   cv::waitKey(50);
 
   for (int k = 0; k <= 199; k++) {
@@ -1095,10 +1096,11 @@ void D435::get_mean_depth() {
         if (depth_data.at<ushort>(i, j) == 0 ||
             depth_data.at<ushort>(i, j) > 15000) {
           continue;
+        } else {
+          count.at<double>(i, j)++;
+          result.at<double>(i, j) +=
+              static_cast<double>(depth_data.at<ushort>(i, j));
         }
-        count.at<double>(i, j)++;
-        result.at<double>(i, j) +=
-            static_cast<double>(depth_data.at<ushort>(i, j));
       }
     }
     cv::waitKey(10);
@@ -1129,12 +1131,14 @@ void D435::get_mean_depth() {
   cv::imwrite("mean_depth.png", conv);
   //   std::cout << conv << std::endl;
   //   int d = 0;
-  // std::cout << tmp_result << std::endl;
+  std::cout << "result" << result.rows << result.cols << std::endl;
+  std::cout << "tmp_result" << tmp_result.rows << tmp_result.cols << std::endl;
 
   cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
                 below_edge - top_edge);
   cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
 
+  std::cout << "ROI:  " << edge_data << std::endl;
   threshold_data = calculate_threshold(edge_data, raw_datas);
   for (auto a : threshold_data) {
     std::cout << a << "  ";
@@ -1146,18 +1150,29 @@ void D435::get_mean_depth() {
     //     std::cout << "hello you" << d << std::endl;
     //     d++;
     get_depth();
-
+    double threads = 0;
     for (int i = 0; i < depth_data.rows; i++) {
       // std::cout << threshold_data[i] * 1.0 << "/"
       //           << static_cast<ushort>(threshold_data[i]*1.0) << " "
       //           << std::endl;
+      if (threshold_data[i] < 6) {
+        threads = threshold_data[i] * 10.0;
+      } else if (threshold_data[i] < 20) {
+        threads = threshold_data[i] * 4.0;
+      } else if (threshold_data[i] < 40) {
+        threads = threshold_data[i] * 1.5;
+      } else if (threshold_data[i] < 70) {
+        threads = threshold_data[i] * 2.5;
+      } else {
+        threads = threshold_data[i] * 5;
+      }
       for (int j = 0; j < depth_data.cols; j++) {
         if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
           depth_data.at<ushort>(i, j) = 255;
         } else {
           if (static_cast<double>(tmp_result.at<ushort>(i, j)) -
                   static_cast<double>(depth_data.at<ushort>(i, j)) <
-              threshold_data[i] * 2.0) {
+              threads) {
             depth_data.at<ushort>(i, j) = 255;
           } else {
             depth_data.at<ushort>(i, j) = 0;

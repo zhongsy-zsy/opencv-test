@@ -15,6 +15,9 @@ std::vector<double> calculate_threshold(cv::Mat mean_depth,
 
   std::cout << "mean_depth_rows_cols:" << mean_depth.rows << mean_depth.cols
             << std::endl;
+
+  std::cout << "mean_depth_rows_cols:" << raw_data[0].rows << raw_data[1].cols
+            << std::endl;
   for (int i = 0; i < mean_depth.rows; i++) {
     double max_diff = 0;
     for (int j = 0; j < mean_depth.cols; j++) {
@@ -28,8 +31,8 @@ std::vector<double> calculate_threshold(cv::Mat mean_depth,
         double diff_tmp = static_cast<double>(mean_depth.at<ushort>(i, j)) -
                           static_cast<double>(raw_data[k].at<ushort>(i, j));
         if (diff_tmp < 0) {
-          //   continue;
-          std::max(max_diff, std::fabs(diff_tmp));
+            continue;
+        //   std::max(max_diff, std::fabs(diff_tmp));
         } else {
           max_diff = std::max(max_diff, diff_tmp);
         }
@@ -99,8 +102,8 @@ std::vector<double> calculate_threshold(cv::Mat mean_depth,
 
     for (int f = 0; f < res.size(); f++) {
       if (res[f] >= 0.99) {
-        // std::cout << "max_val" << max_value[i] << std::endl;
-        // std::cout << "f: " << f << std::endl;
+        std::cout << "max_val" << max_value[i] << std::endl;
+        std::cout << "f: " << f << std::endl;
         threshold.push_back((f + 1) * (max_value[i]) / 10.0);
         break;
       }
