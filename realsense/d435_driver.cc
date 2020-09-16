@@ -1068,9 +1068,9 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
 
 /* 计算多项式参数 */
 void D435::get_mean_depth() {
-  int left_edge = 200;
-  int right_edge = 440;
-  int top_edge = 20;
+  int left_edge = 180;
+  int right_edge = 420;
+  int top_edge = 0;
   int below_edge = 480;
 
   std::vector<cv::Mat> raw_datas;
@@ -1078,7 +1078,7 @@ void D435::get_mean_depth() {
   cv::Mat_<double> result(480, 640);
   cv::waitKey(50);
 
-  for (int k = 0; k <= 299; k++) {
+  for (int k = 0; k <= 199; k++) {
     std::string depth_name("calibration_data");
     depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
                  depth_name + std::to_string(k + 1) + ".png";
@@ -1087,7 +1087,9 @@ void D435::get_mean_depth() {
     cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
                    below_edge - top_edge);
     cv::Mat raw_data_edge = depth_data(rect1);
-    raw_datas.push_back(depth_data);  //  存放感兴趣区域
+    cv::imshow("raw_rect_data", raw_data_edge);
+    cv::waitKey(10);
+    raw_datas.push_back(raw_data_edge);  //  存放感兴趣区域
     for (int i = 0; i < depth_data.rows; i++) {
       for (int j = 0; j < depth_data.cols; j++) {
         if (depth_data.at<ushort>(i, j) == 0 ||
@@ -1127,16 +1129,17 @@ void D435::get_mean_depth() {
   cv::imwrite("mean_depth.png", conv);
   //   std::cout << conv << std::endl;
   //   int d = 0;
-  //   std::cout << tmp_result << std::endl;
+  // std::cout << tmp_result << std::endl;
 
   cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
                 below_edge - top_edge);
   cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
 
-  threshold_data = calculate_threshold(tmp_result, raw_datas);
+  threshold_data = calculate_threshold(edge_data, raw_datas);
   for (auto a : threshold_data) {
     std::cout << a << "  ";
   }
+  std::cout << "threshold size: " << threshold_data.size() << std::endl;
   std::cout << std::endl;
 
   while (1) {
@@ -1145,19 +1148,24 @@ void D435::get_mean_depth() {
     get_depth();
 
     for (int i = 0; i < depth_data.rows; i++) {
+      // std::cout << threshold_data[i] * 1.0 << "/"
+      //           << static_cast<ushort>(threshold_data[i]*1.0) << " "
+      //           << std::endl;
       for (int j = 0; j < depth_data.cols; j++) {
-        // if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
-        //   depth_data.at<ushort>(i, j) = 255;
-        // } else {
-          if (tmp_result.at<ushort>(i, j) - depth_data.at<ushort>(i, j) <
-              static_cast<ushort>(threshold_data[i]) * 2.0) {
+        if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
+          depth_data.at<ushort>(i, j) = 255;
+        } else {
+          if (static_cast<double>(tmp_result.at<ushort>(i, j)) -
+                  static_cast<double>(depth_data.at<ushort>(i, j)) <
+              threshold_data[i] * 2.0) {
             depth_data.at<ushort>(i, j) = 255;
           } else {
             depth_data.at<ushort>(i, j) = 0;
           }
         }
-    //   }
+      }
     }
+    // std::cout << std::endl;
 
     //     for (int i = 0; i < result.rows; i++) {
     //       for (int j = 0; j < result.cols; j++) {
