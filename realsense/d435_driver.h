@@ -58,7 +58,7 @@ class D435 {
   void get_depth();
   std::vector<double> polyfit(std::vector<cv::Point> &in_point,
                               int n);  // 计算多项式参数函数
-  void handle_depth();
+  void handle_depth(cv::Mat data);
   void quit_black_block(cv::Mat &image);
   void mask_depth(cv::Mat &image, int throld = 3000);
   void find_obstacle(cv::Mat &depth, int thresh = 200, int max_thresh = 255,

@@ -226,7 +226,7 @@ void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
   // 阈值分割
-  threshold(dep, threshold_output, thresh, 255, cv::THRESH_BINARY_INV);
+  cv::threshold(dep, threshold_output, thresh, 255, cv::THRESH_BINARY_INV);
   cv::imshow("thread_later", threshold_output);
   cv::waitKey(1);
   // mask_depth(src, threshold_output);
@@ -879,28 +879,28 @@ void D435::calibration() {
   std::cout << std::endl;
 }
 
-void D435::handle_depth() {
-  cv::Mat data;
-  data = depth_data.clone();
+void D435::handle_depth(cv::Mat data) {
+//   cv::Mat data;
+//   data = depth_data.clone();
   cv::medianBlur(data, data, 5);
   //   mask_depth(data, 3000);
-  region_thread(data);
-  data.convertTo(data, CV_8UC1, 1);
-  cv::imshow("fenkuaizhuanhuan", data);
-  cv::waitKey(1);
+  //   region_thread(data);
+  //   data.convertTo(data, CV_8UC1, 1);
+  //   cv::imshow("fenkuaizhuanhuan", data);
+  //   cv::waitKey(1);
   //   std::cout << data << std::endl;
-  quit_black_block(data);
+  //   quit_black_block(data);
   cv::imshow("depth_raw", data);
 
-  cv::Mat element = cv::getStructuringElement(
-      cv::MORPH_RECT, cv::Size(5, 5));  // 闭操作核的大小
-  cv::morphologyEx(data, data, cv::MORPH_OPEN, element);  // 闭操作
-  cv::Mat element1 = cv::getStructuringElement(
-      cv::MORPH_RECT, cv::Size(7, 7));  // 膨胀操作核的大小
-  cv::imshow("close", data);
-  cv::erode(data, data, element1);
-  cv::imshow("diate", data);
-  cv::waitKey(1);
+  //   cv::Mat element = cv::getStructuringElement(
+  //       cv::MORPH_RECT, cv::Size(5, 5));  // 闭操作核的大小
+  //   cv::morphologyEx(data, data, cv::MORPH_OPEN, element);  // 闭操作
+  //   cv::Mat element1 = cv::getStructuringElement(
+  //       cv::MORPH_RECT, cv::Size(7, 7));  // 膨胀操作核的大小
+  //   cv::imshow("close", data);
+  //   cv::erode(data, data, element1);
+  //   cv::imshow("diate", data);
+  //   cv::waitKey(1);
   //   std::cout << data << std::endl;
   find_obstacle(data, 170, 255, 500);
   calculate_mindistance();
@@ -1155,7 +1155,7 @@ void D435::get_mean_depth() {
       std::vector<double> threshold_data_tmp =
           calculate_threshold(edge_data, raw_datas);
       for (int l = 0; l < threshold_data.size(); l++) {
-        threshold_data[l] = threshold_data[l]+ threshold_data_tmp[l];
+        threshold_data[l] = threshold_data[l] + threshold_data_tmp[l];
       }
     }
     for (auto a : threshold_data) {
@@ -1168,18 +1168,17 @@ void D435::get_mean_depth() {
     raw_datas.clear();
   }
 
-  for (int h = 0; h < threshold_data.size();h++) {
+  for (int h = 0; h < threshold_data.size(); h++) {
     threshold_data[h] = threshold_data[h] / 4.0;
   }
   std::cout << "threshold size: " << threshold_data.size() << std::endl;
   std::cout << std::endl;
 
-
-
   while (1) {
     //     std::cout << "hello you" << d << std::endl;
     //     d++;
     get_depth();
+    cv::Mat Display = depth_data.clone();
     double threads = 0;
     for (int i = 0; i < depth_data.rows; i++) {
       // std::cout << threshold_data[i] * 1.0 << "/"
@@ -1196,20 +1195,21 @@ void D435::get_mean_depth() {
       } else {
         threads = threshold_data[i] * 5;
       }
-      for (int j = 0; j < depth_data.cols; j++) {
+      for (int j = 0; j < Display.cols; j++) {
         if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
-          depth_data.at<ushort>(i, j) = 255;
+          Display.at<ushort>(i, j) = 255;
         } else {
           if (static_cast<double>(tmp_result.at<ushort>(i, j)) -
-                  static_cast<double>(depth_data.at<ushort>(i, j)) <
+                  static_cast<double>(Display.at<ushort>(i, j)) <
               threshold_data[i] * 1.9 * std::pow(1.52, (479 - i) / 200)) {
-            depth_data.at<ushort>(i, j) = 255;
+            Display.at<ushort>(i, j) = 255;
           } else {
-            depth_data.at<ushort>(i, j) = 0;
+            Display.at<ushort>(i, j) = 0;
           }
         }
       }
     }
+
     // std::cout << std::endl;
 
     //     for (int i = 0; i < result.rows; i++) {
@@ -1218,7 +1218,7 @@ void D435::get_mean_depth() {
     //         for (int k = 0; k < poly[i].size(); k++) {
     //           nihe += poly[i][k] * std::pow(j, k);
     //         }
-    //         if (nihe - depth_data.at<ushort>(i, j) < 60) {
+    //         if (nihe - Display.at<ushort>(i, j) < 60) {
     //           depth_data.at<ushort>(i, j) = 0;
     //         } else {
     //           depth_data.at<ushort>(i, j) = 255;
@@ -1299,16 +1299,19 @@ void D435::get_mean_depth() {
     // // std::cout << result << std::endl;
     cv::Mat element1 = cv::getStructuringElement(
         cv::MORPH_RECT, cv::Size(7, 7));  // 操作核的大小
-    cv::morphologyEx(depth_data, depth_data, cv::MORPH_CLOSE,
+    cv::morphologyEx(Display, Display, cv::MORPH_CLOSE,
                      element1);  // 开操作
-    // cv::threshold(depth_data, depth_data, 100, 255,
-    //               cv::THRESH_BINARY_INV);  // 黑白倒转
+
     // cv::Mat element2 = cv::getStructuringElement(
     //     cv::MORPH_RECT, cv::Size(8, 8));  // 操作核的大小
     // cv::dilate(depth_data, depth_data, element2);
-    depth_data.convertTo(depth_data, CV_8UC1, 1);
-    cv::imshow("depth_mean", depth_data);
+    Display.convertTo(Display, CV_8UC1, 1);
+    cv::imshow("depth_mean", Display);
     cv::waitKey(1);
+    // cv::threshold(depth_data, depth_data, 100, 255,
+    //               cv::THRESH_BINARY_INV);  // 黑白倒转
+
+    handle_depth(Display);
   }
 }
 
@@ -1333,6 +1336,6 @@ void D435::HandleFeedbackData() {
   //   matching();
   //     // separate_byte();
   //     // caculate_thread4();
-  //     // handle_depth();
+  //   handle_depth();
   // }
 }
