@@ -1072,7 +1072,7 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
 /* 计算多项式参数 */
 void D435::get_mean_depth() {
   int left_edge = 200;
-  int right_edge = 450;
+  int right_edge = 510;
   int top_edge = 0;
   int below_edge = 480;
   int flag_threads = 0;
@@ -1305,9 +1305,9 @@ void D435::get_mean_depth() {
     cv::morphologyEx(Display, Display, cv::MORPH_CLOSE,
                      element1);  // 开操作
 
-    // cv::Mat element2 = cv::getStructuringElement(
-    //     cv::MORPH_RECT, cv::Size(8, 8));  // 操作核的大小
-    // cv::dilate(depth_data, depth_data, element2);
+    cv::Mat element2 = cv::getStructuringElement(
+        cv::MORPH_RECT, cv::Size(4, 4));  // 操作核的大小
+    cv::dilate(depth_data, depth_data, element2);
     Display.convertTo(Display, CV_8UC1, 1);
     cv::imshow("depth_mean", Display);
     cv::waitKey(1);
