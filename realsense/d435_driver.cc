@@ -162,8 +162,8 @@ void D435::get_depth() {
   //   cv::imshow("depth", depth);
   //   cv::waitKey(1);
   cv::Mat display = depth.clone();
-  display.convertTo(display, CV_8UC1, 255.0 / 7000.0, 0.0);
-  cv::imshow("depth", display);
+  display.convertTo(display, CV_8UC1, 255.0 / 7000.0);
+  cv::imshow("depth_display", display);
   cv::waitKey(2);
   depth.copyTo(depth_data);
 }
@@ -277,6 +277,7 @@ void D435::calculate_mindistance() {
     // 设置避障等级为0
     // min_distance = 3000;
     // std::cout << min_distance << std::endl;
+    std::cout << "avoid Free" << std::endl;
   } else {
     for (int i = 0; i < result.size(); i++) {
       cv::Rect rect;
@@ -336,9 +337,9 @@ void D435::calculate_mindistance() {
       if (!res.empty()) {
         min_distance = *std::min_element(res.begin(), res.end());
         std::cout << "min_diatance" << min_distance << std::endl;
-        if (min_distance < 500) {
+        if (min_distance < 1000) {
           std::cout << "stop avoid" << std::endl;
-        } else if (min_distance < 2000) {
+        } else if (min_distance < 1500) {
           std::cout << "avoid level 1" << std::endl;
         } else if (min_distance < 4000) {
           std::cout << "avoid level 2" << std::endl;
@@ -1093,7 +1094,9 @@ void D435::get_mean_depth() {
       cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
                      below_edge - top_edge);
       cv::Mat raw_data_edge = depth_data(rect1);
-      cv::imshow("raw_rect_data", raw_data_edge);
+      cv::Mat edge_data_display = raw_data_edge;
+      edge_data_display.convertTo(edge_data_display, CV_8UC1, 255.0 / 15000.0);
+      cv::imshow("raw_rect_data", edge_data_display);
       cv::waitKey(10);
       raw_datas.push_back(raw_data_edge);  //  存放感兴趣区域
       for (int i = 0; i < depth_data.rows; i++) {
@@ -1329,7 +1332,7 @@ void D435::save_depth_image() {
 
 void D435::HandleFeedbackData() {
   get_mean_depth();
-  // start_calibration();
+//   start_calibration();
   //   save_depth_image();
   // while (1) {
   //   get_depth();
