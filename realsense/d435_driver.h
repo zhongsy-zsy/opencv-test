@@ -11,6 +11,18 @@
 #include "GRANSAC.hpp"
 #include "PlaneModel.hpp"
 
+// #define DEBUG ;
+
+/* 划定标定范围 */
+namespace {
+int left_edge = 200;
+int right_edge = 510;
+int top_edge = 0;
+int below_edge = 480;
+int flag_threads = 0;
+int iter_times = 10;         // 迭代次数
+int samples_nums_up = 40;  // 计算阈值样本增量
+}  // namespace
 namespace {
 const int Width = 640;
 const int Height = 480;
@@ -51,6 +63,7 @@ class D435 {
   cv::Mat show_depth(int row_start, int row_end, int col_start, int col_end);
   void start_calibration();
   void calculate_poly(cv::Mat mean_depth);
+  cv::Mat thresholding(cv::Mat data, cv::Mat mean_depth);
 
  private:
   //自定义接口

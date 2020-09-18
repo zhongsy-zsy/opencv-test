@@ -31,8 +31,8 @@ std::vector<double> calculate_threshold(cv::Mat mean_depth,
         double diff_tmp = static_cast<double>(mean_depth.at<ushort>(i, j)) -
                           static_cast<double>(raw_data[k].at<ushort>(i, j));
         if (diff_tmp < 0) {
-            continue;
-        //   std::max(max_diff, std::fabs(diff_tmp));
+          continue;
+          //   std::max(max_diff, std::fabs(diff_tmp));
         } else {
           max_diff = std::max(max_diff, diff_tmp);
         }
@@ -109,6 +109,51 @@ std::vector<double> calculate_threshold(cv::Mat mean_depth,
       }
     }
   }
+  return threshold;
+}
+
+std::vector<double> calculate_max_threshold(
+    cv::Mat mean_depth, const std::vector<cv::Mat>& raw_data) {
+  std::vector<double> threshold;  // 用来存放阈值
+  //   std::vector<double> max_value;
+
+  // std::cout << mean_depth << std::endl;
+  // std::cout << raw_data[0] << std::endl;
+  // std::cout << raw_data[1] << std::endl;
+#ifdef DEBUG
+  std::cout << "mean_depth_rows_cols:" << mean_depth.rows << mean_depth.cols
+            << std::endl;
+
+  std::cout << "mean_depth_rows_cols:" << raw_data[0].rows << raw_data[1].cols
+            << std::endl;
+#endif
+  for (int i = 0; i < mean_depth.rows; i++) {
+    double max_diff = 0;
+    for (int j = 0; j < mean_depth.cols; j++) {
+      /* 求出最大的偏差值 */
+      for (int k = 0; k < raw_data.size(); k++) {
+        //   std::cout << "mean_depth: " << mean_depth <<
+        //   std::endl;
+        //   std::cout << "raw_data: "
+        //             << (int)mean_depth.at<ushort>(0, 2)
+        //             << std::endl;
+        double diff_tmp = static_cast<double>(mean_depth.at<ushort>(i, j)) -
+                          static_cast<double>(raw_data[k].at<ushort>(i, j));
+        if (diff_tmp < 0) {
+          continue;
+          //   std::max(max_diff, std::fabs(diff_tmp));
+        } else {
+          max_diff = std::max(max_diff, diff_tmp);
+        }
+      }
+    }
+#ifdef DEBUG
+    std::cout << "max_diff" << i << ":" << max_diff << std::endl;
+#endif
+    threshold.push_back(max_diff);
+    max_diff = 0;
+  }
+
   return threshold;
 }
 

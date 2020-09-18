@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.1.0)
 project(realsense)
 
 set( CMAKE_CXX_COMPILER "g++" )
-set( CMAKE_BUILD_TYPE "Release" )
+# set( CMAKE_BUILD_TYPE "Release" )
 set( CMAKE_CXX_FLAGS "-std=c++11 -O3" )
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "set build type to debug")
+
 # Enable C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
@@ -29,10 +31,14 @@ include_directories( ${realsense2_INCLUDE_DIRS}
 
 add_executable(main class_main.cc )
 add_executable(cali calibration.cc )
+add_executable(test_visit test_visit.cc )
+
 # add_executable(yuzhi common_op.cc )
 
 
 target_link_libraries( main ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
 target_link_libraries( cali ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
+target_link_libraries( test_visit ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
+
 # target_link_libraries( yuzhi ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
 

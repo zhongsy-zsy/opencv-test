@@ -227,7 +227,7 @@ void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
   cv::RNG rng(12345);
   // 阈值分割
   cv::threshold(dep, threshold_output, thresh, 255, cv::THRESH_BINARY_INV);
-  cv::imshow("thread_later", threshold_output);
+  cv::imshow("erzhihua", threshold_output);
   cv::waitKey(1);
   // mask_depth(src, threshold_output);
   /// 寻找轮廓
@@ -315,11 +315,11 @@ void D435::calculate_mindistance() {
           // 优化获取的是前面3个最小点的平均值
           if (tmp.empty()) {
             tmp.push_back(min_dis);
-            imageROI.at<ushort>(min_point) = 3000;
+            imageROI.at<ushort>(min_point) = 10000;
           } else {
             if (std::fabs(min_dis - tmp.back()) < 40) {
               tmp.push_back(min_dis);
-              imageROI.at<ushort>(min_point) = 3000;
+              imageROI.at<ushort>(min_point) = 10000;
             } else {
               // 是噪声点
               tmp.pop_back();
@@ -350,6 +350,8 @@ void D435::calculate_mindistance() {
         std::cout << "avoid FREE" << std::endl;
       }
       std::cout << std::endl;
+    } else {
+      std::cout << "avoid FREE" << std::endl;
     }
   }
   result.clear();
@@ -881,8 +883,8 @@ void D435::calibration() {
 }
 
 void D435::handle_depth(cv::Mat data) {
-//   cv::Mat data;
-//   data = depth_data.clone();
+  //   cv::Mat data;
+  //   data = depth_data.clone();
   cv::medianBlur(data, data, 5);
   //   mask_depth(data, 3000);
   //   region_thread(data);
@@ -891,7 +893,7 @@ void D435::handle_depth(cv::Mat data) {
   //   cv::waitKey(1);
   //   std::cout << data << std::endl;
   //   quit_black_block(data);
-  cv::imshow("depth_raw", data);
+  //   cv::imshow("depth_raw", data);
 
   //   cv::Mat element = cv::getStructuringElement(
   //       cv::MORPH_RECT, cv::Size(5, 5));  // 闭操作核的大小
@@ -1069,28 +1071,44 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
   //   return mat_k;
 }
 
-/* 计算多项式参数 */
+/* 计算阈值参数 */
 void D435::get_mean_depth() {
-  int left_edge = 200;
-  int right_edge = 510;
-  int top_edge = 0;
-  int below_edge = 480;
-  int flag_threads = 0;
-  cv::Mat tmp_result(480, 640, CV_16UC1);
-  while (flag_threads != 4) {
-    flag_threads++;
+  /* 声明局部变量 */
+  cv::Mat out(3000, 500, CV_8UC3, cv::Scalar::all(0));  // 用于绘图
+  calibration_data.open("calibartion_data.csv",
+                        std::ios::out | std::ios::app);  // 记录标定的数据
+  if (calibration_data.is_open()) {
+    std::cout << RED << "open sucess clibration_data" << RESET << std::endl;
+  }
+  std::fstream save_mean_depth;
+  save_mean_depth.open("mean_depth_data.csv", std::ios::out | std::ios::app);
+  if (save_mean_depth.is_open()) {
+    std::cout << RED << "open sucess mean_depth_data" << RESET << std::endl;
+  }
+
+  cv::Mat_<double> mean_depth_average = cv::Mat_<double>::zeros(480, 640);
+
+  int flag_t = 0;
+
+  for (int flag = 1; flag <= iter_times; flag++) {
+    cv::Mat tmp_result(480, 640, CV_16UC1);
     std::vector<cv::Mat> raw_datas;
+    // std::cout << raw_datas.size() << std::endl;
     cv::Mat_<double> count = cv::Mat_<double>::zeros(480, 640);
     cv::Mat_<double> result = cv::Mat_<double>::zeros(480, 640);
-    // std::cout << "count_mat" << count << std::endl;
+    std::cout << "times" << flag << std::endl;
     cv::waitKey(50);
 
-    for (int k = 0; k <= 199; k++) {
+    for (int k = 0; k < samples_nums_up; k++) {
+      get_depth();
+
+#ifdef DEBUG
       std::string depth_name("calibration_data");
       depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
                    depth_name + std::to_string(k + 1) + ".png";
-      get_depth();
       cv::imwrite(depth_name, depth_data);
+#endif
+
       cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
                      below_edge - top_edge);
       cv::Mat raw_data_edge = depth_data(rect1);
@@ -1114,20 +1132,39 @@ void D435::get_mean_depth() {
       cv::waitKey(15);
     }
 
-    std::cout << "counts" << count << std::endl;
-    int zerosnum = 0;
     for (int i = 0; i < result.rows; i++) {
       for (int j = 0; j < result.cols; j++) {
         if (count.at<double>(i, j) == 0) {
           result.at<double>(i, j) = 0;
-          zerosnum++;
           continue;
         }
         result.at<double>(i, j) = static_cast<double>(result.at<double>(i, j) /
                                                       count.at<double>(i, j));
       }
     }
-    std::cout << "zeronums" << zerosnum << std::endl;
+
+    /*
+        保存每一次的均值
+     */
+    save_mean_depth << " maean_depth" << flag << std::endl;
+    for (int i = 0; i < result.rows; i++) {
+      for (int j = 0; j < result.cols; j++) {
+        save_mean_depth << result.at<double>(i, j) << ";";
+      }
+      save_mean_depth << std::endl;
+    }
+    // mean_depth_average += result;  // 将平均值加起来
+    if (flag_t == 0) {
+      mean_depth_average = result;
+      flag_t = 1;
+    } else {
+      for (int i = 0; i < mean_depth_average.rows; i++) {
+        for (int j = 0; j < mean_depth_average.cols; j++) {
+          mean_depth_average.at<double>(i, j) = std::min(
+              mean_depth_average.at<double>(i, j), result.at<double>(i, j));
+        }
+      }
+    }
 
     // cv::Mat tmp_result(480, 640, CV_16UC1);
     for (int i = 0; i < result.rows; i++) {
@@ -1136,186 +1173,172 @@ void D435::get_mean_depth() {
             static_cast<ushort>(result.at<double>(i, j));
       }
     }
-    //   calculate_poly(result);
+//   calculate_poly(result);
+#ifdef DEBUG
     cv::Mat conv;
     conv.create(480, 640, CV_16UC1);
     conv = result;
     conv.convertTo(conv, CV_16UC1, 1);
     cv::imwrite("mean_depth.png", conv);
-    //   std::cout << conv << std::endl;
-    //   int d = 0;
-    std::cout << "result" << result << std::endl;
-    std::cout << "tmp_result" << tmp_result << std::endl;
+#endif
 
     cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
                   below_edge - top_edge);
     cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
 
-    std::cout << "ROI:  " << edge_data << std::endl;
     if (threshold_data.empty()) {
-      threshold_data = calculate_threshold(edge_data, raw_datas);
+      threshold_data =
+          calculate_max_threshold(edge_data, raw_datas);  // 开始计算阈值
+      calibration_data << "time: "
+                       << "," << flag << ","
+                       << "samples_num: "
+                       << "," << flag * samples_nums_up << std::endl;
+      for (auto value : threshold_data) {
+        calibration_data << value << ",";
+      }
+      calibration_data << std::endl;
     } else {
+      calibration_data << "time: "
+                       << "," << flag << ","
+                       << "samples_num: "
+                       << "," << flag * samples_nums_up << std::endl;
       std::vector<double> threshold_data_tmp =
-          calculate_threshold(edge_data, raw_datas);
+          calculate_max_threshold(edge_data, raw_datas);
+      for (auto value : threshold_data_tmp) {
+        calibration_data << value << ",";
+      }
+      calibration_data << std::endl;
       for (int l = 0; l < threshold_data.size(); l++) {
-        threshold_data[l] = threshold_data[l] + threshold_data_tmp[l];
+        threshold_data[l] = std::max(threshold_data[l], threshold_data_tmp[l]);
       }
     }
+#ifdef DEBUG
     for (auto a : threshold_data) {
       std::cout << a << "  ";
     }
     std::cout << "threshold size: " << threshold_data.size() << std::endl;
     std::cout << std::endl;
-
+#endif
     // 取四次阈值当中的最大值
     raw_datas.clear();
   }
 
-  for (int h = 0; h < threshold_data.size(); h++) {
-    threshold_data[h] = threshold_data[h] / 4.0;
+#ifdef DEBUG
+  for (int i = 0; i < threshold_data.size(); i++) {
+    cv::Point2i drawing;
+    drawing.x = static_cast<int>(i);
+    drawing.y = static_cast<int>(threshold_data[i]);
+    cv::circle(out, drawing, 5, cv::Scalar(255, 255, 255), CV_FILLED, CV_AA);
   }
-  std::cout << "threshold size: " << threshold_data.size() << std::endl;
-  std::cout << std::endl;
+  cv::imwrite("calibration.jpg", out);
+#endif
+  /*
+    save calibration data
+ */
+
+  calibration_data << "average" << std::endl;
+  for (int h = 0; h < threshold_data.size(); h++) {
+    // threshold_data[h] = threshold_data[h] ;
+    calibration_data << threshold_data[h] << ",";
+  }
+  calibration_data << std::endl;
+
+  /*
+     计算并保存平均深度图
+  */
+
+  // mean_depth_average = mean_depth_average / iter_times;
+  // save_mean_depth << "mean_depth_average" << std::endl;
+  // for (int i = 0; i < mean_depth_average.rows; i++) {
+  //   for (int j = 0; j < mean_depth_average.cols; j++) {
+  //     save_mean_depth << mean_depth_average.at<double>(i, j) << ",";
+  //   }
+  //   save_mean_depth << std::endl;
+  // }
 
   while (1) {
-    //     std::cout << "hello you" << d << std::endl;
-    //     d++;
     get_depth();
+    cv::Mat front_img = depth_data;
+    front_img = thresholding(front_img, mean_depth_average);
+    std::cout << "first" << std::endl;
+    get_depth();  // 当前帧
     cv::Mat Display = depth_data.clone();
-    double threads = 0;
-    for (int i = 0; i < depth_data.rows; i++) {
-      // std::cout << threshold_data[i] * 1.0 << "/"
-      //           << static_cast<ushort>(threshold_data[i]*1.0) << " "
-      //           << std::endl;
-      if (threshold_data[i] < 6) {
-        threads = threshold_data[i] * 10.0;
-      } else if (threshold_data[i] < 20) {
-        threads = threshold_data[i] * 4.0;
-      } else if (threshold_data[i] < 40) {
-        threads = threshold_data[i] * 2.0;
-      } else if (threshold_data[i] < 70) {
-        threads = threshold_data[i] * 2.5;
-      } else {
-        threads = threshold_data[i] * 5;
-      }
-      for (int j = 0; j < Display.cols; j++) {
-        if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
-          Display.at<ushort>(i, j) = 255;
-        } else {
-          if (static_cast<double>(tmp_result.at<ushort>(i, j)) -
-                  static_cast<double>(Display.at<ushort>(i, j)) <
-              threshold_data[i] * 1.9 * std::pow(1.52, (479 - i) / 200)) {
-            Display.at<ushort>(i, j) = 255;
-          } else {
-            Display.at<ushort>(i, j) = 0;
-          }
-        }
-      }
-    }
-
-    // std::cout << std::endl;
-
-    //     for (int i = 0; i < result.rows; i++) {
-    //       for (int j = 0; j < result.cols; j++) {
-    //         double nihe = 0;
-    //         for (int k = 0; k < poly[i].size(); k++) {
-    //           nihe += poly[i][k] * std::pow(j, k);
-    //         }
-    //         if (nihe - Display.at<ushort>(i, j) < 60) {
-    //           depth_data.at<ushort>(i, j) = 0;
-    //         } else {
-    //           depth_data.at<ushort>(i, j) = 255;
-    //         }
-    //       }
-    //     }
-
-    // for (int i = 0; i < 80; i++) {
-    //   for (int j = 0; j < depth_data.cols; j++) {
-    //     if (result.at<double>(i, j) -
-    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
-    //         1670) {
-    //       depth_data.at<ushort>(i, j) = 255;
-    //     } else {
-    //       depth_data.at<ushort>(i, j) = 0;
-    //     }
-    //   }
-    // }
-
-    // for (int i = 80; i < 160; i++) {
-    //   for (int j = 0; j < depth_data.cols; j++) {
-    //     if (result.at<double>(i, j) -
-    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
-    //         1570) {
-    //       depth_data.at<ushort>(i, j) = 255;
-    //     } else {
-    //       depth_data.at<ushort>(i, j) = 0;
-    //     }
-    //   }
-    // }
-
-    // for (int i = 160; i < 240; i++) {
-    //   for (int j = 0; j < depth_data.cols; j++) {
-    //     if (result.at<double>(i, j) -
-    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
-    //         370) {
-    //       depth_data.at<ushort>(i, j) = 255;
-    //     } else {
-    //       depth_data.at<ushort>(i, j) = 0;
-    //     }
-    //   }
-    // }
-    // for (int i = 240; i < 320; i++) {
-    //   for (int j = 0; j < depth_data.cols; j++) {
-    //     if (result.at<double>(i, j) -
-    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
-    //         100) {
-    //       depth_data.at<ushort>(i, j) = 255;
-    //     } else {
-    //       depth_data.at<ushort>(i, j) = 0;
-    //     }
-    //   }
-    // }
-
-    // for (int i = 320; i < 400; i++) {
-    //   for (int j = 0; j < depth_data.cols; j++) {
-    //     if (result.at<double>(i, j) -
-    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
-    //         40) {
-    //       depth_data.at<ushort>(i, j) = 255;
-    //     } else {
-    //       depth_data.at<ushort>(i, j) = 0;
-    //     }
-    //   }
-    // }
-
-    // for (int i = 400; i < 480; i++) {
-    //   for (int j = 0; j < depth_data.cols; j++) {
-    //     if (result.at<double>(i, j) -
-    //             static_cast<double>(depth_data.at<ushort>(i, j)) <
-    //         45) {
-    //       depth_data.at<ushort>(i, j) = 255;
-    //     } else {
-    //       depth_data.at<ushort>(i, j) = 0;
-    //     }
-    //   }
-    // }
-    // // std::cout << result << std::endl;
-    cv::Mat element1 = cv::getStructuringElement(
-        cv::MORPH_RECT, cv::Size(7, 7));  // 操作核的大小
-    cv::morphologyEx(Display, Display, cv::MORPH_CLOSE,
-                     element1);  // 开操作
-
-    cv::Mat element2 = cv::getStructuringElement(
-        cv::MORPH_RECT, cv::Size(4, 4));  // 操作核的大小
-    cv::dilate(depth_data, depth_data, element2);
-    Display.convertTo(Display, CV_8UC1, 1);
-    cv::imshow("depth_mean", Display);
+    Display = thresholding(Display, mean_depth_average);
+    cv::Mat tmp = Display;
+    tmp.convertTo(tmp, CV_8UC1, 1);
+    cv::imshow("Display_mean_depth", tmp);
     cv::waitKey(1);
     // cv::threshold(depth_data, depth_data, 100, 255,
     //               cv::THRESH_BINARY_INV);  // 黑白倒转
+    get_depth();
+    cv::Mat last_img = depth_data;
+    std::cout << "second" << std::endl;
+    last_img = thresholding(last_img, mean_depth_average);
 
+    /* 用三张图片处理 */
+    for (int i = 0; i < Display.rows; i++) {
+      for (int j = 0; j < Display.cols; j++) {
+        if (front_img.at<ushort>(i, j) + last_img.at<ushort>(i, j) +
+                Display.at<ushort>(i, j) <
+            300) {
+          Display.at<ushort>(i, j) = 0;
+        } else {
+          Display.at<ushort>(i, j) = 255;
+        }
+      }
+    }
+    std::cout << "thrid" << std::endl;
+
+    Display.convertTo(Display, CV_8UC1, 1);
     handle_depth(Display);
   }
+}
+
+cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth) {
+  //   std::cout << "mean_depth" << mean_depth <<"mean_depth_end" <<std::endl;
+  //   std::cout << "raw_data" << data <<"raw_data_end" <<std::endl;
+  for (int i = 0; i < data.rows; i++) {
+    for (int j = 0; j < data.cols; j++) {
+      if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
+        data.at<ushort>(i, j) = 255;
+      } else {
+        // if (i == 479) {
+        //   std::cout << "first" << mean_depth.at<double>(i, j) << "second"
+        //             << data.at<ushort>(i, j) << "thread" <<
+        //             threshold_data[i]<<" ";
+
+        //   std::cout << "diff: "
+        //             << static_cast<double>(mean_depth.at<double>(i, j)) -
+        //                    static_cast<double>(data.at<ushort>(i, j))
+        //             << "  ";
+        // }
+
+        if (static_cast<double>(mean_depth.at<double>(i, j)) -
+                static_cast<double>(data.at<ushort>(i, j)) <
+            threshold_data[i]) {
+          data.at<ushort>(i, j) = 255;
+        } else {
+          data.at<ushort>(i, j) = 0;
+        }
+      }
+    }
+  }
+  // if (static_cast<double>(mean_depth_average.at<ushort>(i, j)) -
+  //         static_cast<double>(Display.at<ushort>(i, j)) <
+  //     threshold_data[i] * 2.0 * std::pow(1.52, (479 - i) / 200))
+  //   cv::Mat element1 = cv::getStructuringElement(cv::MORPH_RECT,
+  //                                                cv::Size(7, 7));  //
+  //                                                操作核的大小
+  //   cv::morphologyEx(data, data, cv::MORPH_CLOSE,
+  //                    element1);  // 开操作
+
+  //   cv::Mat element2 = cv::getStructuringElement(cv::MORPH_RECT,
+  //                                                cv::Size(4, 4));  //
+  //                                                操作核的大小
+  //   cv::dilate(data, data, element2);
+  //   cv::medianBlur(data, data, 5);  // 中值滤波
+  //   data.convertTo(data, CV_8UC1, 1);
+  return data;
 }
 
 void D435::save_depth_image() {
@@ -1332,7 +1355,7 @@ void D435::save_depth_image() {
 
 void D435::HandleFeedbackData() {
   get_mean_depth();
-//   start_calibration();
+  //   start_calibration();
   //   save_depth_image();
   // while (1) {
   //   get_depth();
