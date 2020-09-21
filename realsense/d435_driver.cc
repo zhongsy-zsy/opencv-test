@@ -905,7 +905,7 @@ void D435::handle_depth(cv::Mat data) {
   //   cv::imshow("diate", data);
   //   cv::waitKey(1);
   //   std::cout << data << std::endl;
-  find_obstacle(data, 170, 255, 500);
+  find_obstacle(data, 170, 255, are_threshold);
   calculate_mindistance();
 }
 
@@ -1247,7 +1247,7 @@ void D435::get_mean_depth() {
      计算并保存平均深度图
   */
 
-//   mean_depth_average = mean_depth_average / iter_times;
+  //   mean_depth_average = mean_depth_average / iter_times;
   save_mean_depth << "mean_depth_average" << std::endl;
   for (int i = 0; i < mean_depth_average.rows; i++) {
     for (int j = 0; j < mean_depth_average.cols; j++) {
@@ -1256,18 +1256,39 @@ void D435::get_mean_depth() {
     save_mean_depth << std::endl;
   }
 
+  std::vector<double> threshold_data_tmp = threshold_data;
+
   while (light_stream.size() <= 4) {
     get_depth();
     cv::Mat Display = depth_data.clone();
-    Display = thresholding(Display, mean_depth_average);
+    Display = thresholding(Display, mean_depth_average, threshold_data_tmp);
     light_stream.push_back(Display);
     // std::cout << Display << std::endl;
   }
-  std::cout << "size_init" << light_stream.size() << std::endl;
+//   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
+    if (_kbhit()) {
+      std::cin.clear();
+      std::cin.ignore();
+      std::cout << "srart change args" << std::endl;
+      std::cout << "please input numbers of threashold" << std::endl;
+      double up_data_value = 0;
+      std::cin >> up_data_value;
+      for (int i = 0; i < threshold_data_tmp.size(); i++) {
+        threshold_data_tmp[i] += up_data_value;
+        std::cout << threshold_data_tmp[i] << " ";
+      }
+      std::cout << std::endl;
+
+      std::cout << "please input ares_thread" << std::endl;
+      std::cin >> are_threshold;
+      std::cout << "are_threshold: " << are_threshold << std::endl;
+      std::cin.clear();
+      std::cin.ignore();
+    }
     get_depth();  // 当前帧
     cv::Mat Display = depth_data.clone();
-    Display = thresholding(Display, mean_depth_average);
+    Display = thresholding(Display, mean_depth_average, threshold_data_tmp);
 
     light_stream.emplace_back(Display.clone());
     cv::Mat tmp = Display;
@@ -1309,7 +1330,8 @@ void D435::get_mean_depth() {
   }
 }
 
-cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth) {
+cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth,
+                           std::vector<double> thread_data) {
   //   std::cout << "mean_depth" << mean_depth <<"mean_depth_end"
   //   <<std::endl; std::cout << "raw_data" << data <<"raw_data_end"
   //   <<std::endl;
@@ -1322,7 +1344,7 @@ cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth) {
         //   std::cout << "first" << mean_depth.at<double>(i, j) <<
         //   "second"
         //             << data.at<ushort>(i, j) << "thread" <<
-        //             threshold_data[i]<<" ";
+        //             thread_data[i]<<" ";
 
         //   std::cout << "diff: "
         //             << static_cast<double>(mean_depth.at<double>(i, j))
@@ -1333,7 +1355,7 @@ cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth) {
 
         if (static_cast<double>(mean_depth.at<double>(i, j)) -
                 static_cast<double>(data.at<ushort>(i, j)) <
-            threshold_data[i]) {
+            thread_data[i]) {
           data.at<ushort>(i, j) = 255;
         } else {
           data.at<ushort>(i, j) = 0;

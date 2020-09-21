@@ -66,7 +66,8 @@ class D435 {
   cv::Mat show_depth(int row_start, int row_end, int col_start, int col_end);
   void start_calibration();
   void calculate_poly(cv::Mat mean_depth);
-  cv::Mat thresholding(cv::Mat data, cv::Mat mean_depth);
+  cv::Mat thresholding(cv::Mat data, cv::Mat mean_depth,
+                       std::vector<double> threshold_data);
 
  private:
   //自定义接口
@@ -108,5 +109,6 @@ class D435 {
   std::vector<std::vector<double>> poly;
   std::vector<double> threshold_data;
   std::deque<cv::Mat> light_stream;
+  int are_threshold;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

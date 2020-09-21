@@ -33,4 +33,10 @@ std::vector<double> calculate_threshold(cv::Mat mean_depth,
 
 std::vector<double> calculate_max_threshold(cv::Mat mean_depth,
                                         const std::vector<cv::Mat>& raw_data);
+
+int scanKeyboard();
+
+int kbhit(void);
+
+int _kbhit();
 #endif

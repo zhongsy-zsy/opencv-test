@@ -3,7 +3,13 @@
 */
 #include "common_op.h"
 
+#include <fcntl.h>
+#include <stdio.h>
+#include <termio.h>
+#include <unistd.h>
+
 #include <algorithm>
+#include <iostream>
 
 std::vector<double> calculate_threshold(cv::Mat mean_depth,
                                         const std::vector<cv::Mat>& raw_data) {
@@ -195,3 +201,60 @@ std::vector<double> calculate_max_threshold(
 //   }
 //   std::cout << std::endl;
 // }
+
+int scanKeyboard() {
+  int in;
+  struct termios new_settings;
+  struct termios stored_settings;
+  tcgetattr(0, &stored_settings);
+  new_settings = stored_settings;
+  new_settings.c_lflag &= (~ICANON);
+  new_settings.c_cc[VTIME] = 0;
+  tcgetattr(0, &stored_settings);
+  new_settings.c_cc[VMIN] = 1;
+  tcsetattr(0, TCSANOW, &new_settings);
+
+  in = getchar();
+
+  tcsetattr(0, TCSANOW, &stored_settings);
+  return in;
+}
+
+int kbhit(void) {
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+  ch = getchar();
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+  if (ch != EOF) {
+    ungetc(ch, stdin);
+    return 1;
+  }
+  return 0;
+}
+
+int _kbhit() {
+  static const int STDIN = 0;
+  static bool initialized = false;
+
+  if (!initialized) {
+    // Use termios to turn off line buffering
+    termios term;
+    tcgetattr(STDIN, &term);
+    term.c_lflag &= ~ICANON;
+    tcsetattr(STDIN, TCSANOW, &term);
+    setbuf(stdin, NULL);
+    initialized = true;
+  }
+
+  int bytesWaiting;
+  ioctl(STDIN, FIONREAD, &bytesWaiting);
+  return bytesWaiting;
+}
