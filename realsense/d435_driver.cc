@@ -1160,7 +1160,7 @@ void D435::get_mean_depth() {
     } else {
       for (int i = 0; i < mean_depth_average.rows; i++) {
         for (int j = 0; j < mean_depth_average.cols; j++) {
-          mean_depth_average.at<double>(i, j) = std::min(
+          mean_depth_average.at<double>(i, j) = std::max(
               mean_depth_average.at<double>(i, j), result.at<double>(i, j));
         }
       }
@@ -1209,7 +1209,7 @@ void D435::get_mean_depth() {
       }
       calibration_data << std::endl;
       for (int l = 0; l < threshold_data.size(); l++) {
-        threshold_data[l] = std::max(threshold_data[l], threshold_data_tmp[l]);
+        threshold_data[l] = std::min(threshold_data[l], threshold_data_tmp[l]);
       }
     }
 #ifdef DEBUG
@@ -1247,14 +1247,14 @@ void D435::get_mean_depth() {
      计算并保存平均深度图
   */
 
-  // mean_depth_average = mean_depth_average / iter_times;
-  // save_mean_depth << "mean_depth_average" << std::endl;
-  // for (int i = 0; i < mean_depth_average.rows; i++) {
-  //   for (int j = 0; j < mean_depth_average.cols; j++) {
-  //     save_mean_depth << mean_depth_average.at<double>(i, j) << ",";
-  //   }
-  //   save_mean_depth << std::endl;
-  // }
+//   mean_depth_average = mean_depth_average / iter_times;
+  save_mean_depth << "mean_depth_average" << std::endl;
+  for (int i = 0; i < mean_depth_average.rows; i++) {
+    for (int j = 0; j < mean_depth_average.cols; j++) {
+      save_mean_depth << mean_depth_average.at<double>(i, j) << ",";
+    }
+    save_mean_depth << std::endl;
+  }
 
   while (light_stream.size() <= 4) {
     get_depth();
@@ -1265,7 +1265,6 @@ void D435::get_mean_depth() {
   }
   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
- 
     get_depth();  // 当前帧
     cv::Mat Display = depth_data.clone();
     Display = thresholding(Display, mean_depth_average);
