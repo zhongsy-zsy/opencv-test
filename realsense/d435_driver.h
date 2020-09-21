@@ -2,7 +2,10 @@
 #ifndef _D435_DRIVER_H_
 #define _D435_DRIVER_H_
 
+#include <deque>
+#include <fstream>
 #include <librealsense2/rs.hpp>
+#include <list>
 #include <memory>
 #include <opencv2/opencv.hpp>
 #include <thread>
@@ -20,7 +23,7 @@ int right_edge = 510;
 int top_edge = 0;
 int below_edge = 480;
 int flag_threads = 0;
-int iter_times = 10;         // 迭代次数
+int iter_times = 10;       // 迭代次数
 int samples_nums_up = 40;  // 计算阈值样本增量
 }  // namespace
 namespace {
@@ -104,5 +107,6 @@ class D435 {
   std::fstream calibration_data;
   std::vector<std::vector<double>> poly;
   std::vector<double> threshold_data;
+  std::deque<cv::Mat> light_stream;
 };
 #endif  // REALSENSE_D435_DRIVER_H_
