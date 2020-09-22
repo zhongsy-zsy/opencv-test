@@ -23,8 +23,8 @@ int right_edge = 510;
 int top_edge = 0;
 int below_edge = 480;
 int flag_threads = 0;
-int iter_times = 5;       // 迭代次数
-int samples_nums_up = 80;  // 计算阈值样本增量
+int iter_times = 2;        // 迭代次数
+int samples_nums_up = 100;  // 计算阈值样本增量
 }  // namespace
 namespace {
 const int Width = 640;
@@ -67,7 +67,7 @@ class D435 {
   void start_calibration();
   void calculate_poly(cv::Mat mean_depth);
   cv::Mat thresholding(cv::Mat data, cv::Mat mean_depth,
-                       std::vector<double> threshold_data);
+                       std::vector<double> threshold_data, int h);
 
  private:
   //自定义接口
@@ -75,11 +75,11 @@ class D435 {
   void get_depth();
   std::vector<double> polyfit(std::vector<cv::Point> &in_point,
                               int n);  // 计算多项式参数函数
-  void handle_depth(cv::Mat data);
+  void handle_depth(std::vector<cv::Mat> data);
   void quit_black_block(cv::Mat &image);
   void mask_depth(cv::Mat &image, int throld = 3000);
-  void find_obstacle(cv::Mat &depth, int thresh = 200, int max_thresh = 255,
-                     int area = 500);
+  void find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
+                     std::vector<int> areas);
   void calculate_mindistance();
   void region_thread(cv::Mat &data);
   void caculate_thread4();
@@ -108,7 +108,8 @@ class D435 {
   std::fstream calibration_data;
   std::vector<std::vector<double>> poly;
   std::vector<double> threshold_data;
-  std::deque<cv::Mat> light_stream;
-  int are_threshold;
+  std::vector<std::deque<cv::Mat>> light_stream;
+  std::vector<int> are_threshold;
+  std::vector<double> up_to_nums;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

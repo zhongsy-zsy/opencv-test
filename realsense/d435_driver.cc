@@ -59,6 +59,11 @@ void D435::Init() {
                               option_range.max);  // 5(max) is fill all holes
   }
 
+  are_threshold.push_back(500);
+  are_threshold.push_back(100);
+  up_to_nums.push_back(-10.0);
+  up_to_nums.push_back(50.0);
+
   run_executor_ =
       std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
 }
@@ -217,41 +222,51 @@ void D435::mask_depth(cv::Mat &image, int throld) {
   // }
 }
 
-void D435::find_obstacle(cv::Mat &depth, int thresh, int max_thresh, int area) {
-  cv::Mat dep;
-  dep = depth.clone();
-  cv::Mat threshold_output;
+void D435::find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
+                         std::vector<int> areas) {
+  //   cv::Mat dep;
+  //   dep = depth.clone();
+  //   cv::Mat threshold_output;
   std::vector<std::vector<cv::Point>> contours;
+  cv::Mat drawing = cv::Mat::zeros(Height, Width, CV_8UC3);  // 用于画图显示
 
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
   // 阈值分割
-  cv::threshold(dep, threshold_output, thresh, 255, cv::THRESH_BINARY_INV);
-  cv::imshow("erzhihua", threshold_output);
-  cv::waitKey(1);
+  for (int i = 0; i < depth.size(); i++) {
+    cv::threshold(depth[i], depth[i], thresh, 255, cv::THRESH_BINARY_INV);
+  }
+  //   cv::imshow("erzhihua", threshold_output);
+  //   cv::waitKey(1);
   // mask_depth(src, threshold_output);
   /// 寻找轮廓
-  findContours(threshold_output, contours, hierarchy, CV_RETR_TREE,
-               CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-  /// 对每个轮廓计算其凸包
-  std::vector<std::vector<cv::Point>> hull(contours.size());
-  for (uint i = 0; i < contours.size(); i++) {
-    convexHull(cv::Mat(contours[i]), hull[i], false);
-  }
 
   /// 绘出轮廓及其凸包
-  cv::Mat drawing = cv::Mat::zeros(threshold_output.size(), CV_8UC3);
-  for (int i = 0; i < contours.size(); i++) {
-    if (contourArea(contours[i]) < area ||
-        contourArea(contours[i]) > 306000)  // 面积大于或小于area的凸包，可忽略
-      continue;
-    result.push_back(hull[i]);
-    cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
-                                  rng.uniform(0, 255));
-    drawContours(drawing, contours, i, color, 1, 8, std::vector<cv::Vec4i>(), 0,
-                 cv::Point());
-    drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(), 0,
-                 cv::Point());
+  for (int h = 0; h < depth.size(); h++) {
+    findContours(depth[h], contours, hierarchy,
+                 CV_RETR_TREE,  // 找到第i副图像的轮廓
+                 CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+
+    /// 对每个轮廓计算其凸包
+    std::vector<std::vector<cv::Point>> hull(contours.size());
+    for (uint i = 0; i < contours.size(); i++) {
+      convexHull(cv::Mat(contours[i]), hull[i], false);
+    }
+
+    for (int i = 0; i < contours.size(); i++) {
+      if (contourArea(contours[i]) < areas[h] ||
+          contourArea(contours[i]) >
+              306000)  // 面积大于或小于area的凸包，可忽略
+        continue;
+      result.push_back(hull[i]);
+      cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
+                                    rng.uniform(0, 255));
+      drawContours(drawing, contours, i, color, 1, 8, std::vector<cv::Vec4i>(),
+                   0, cv::Point());
+      drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(), 0,
+                   cv::Point());
+    }
+    contours.clear();
   }
   cv::imshow("contours", drawing);
 }
@@ -882,10 +897,10 @@ void D435::calibration() {
   std::cout << std::endl;
 }
 
-void D435::handle_depth(cv::Mat data) {
+void D435::handle_depth(std::vector<cv::Mat> data) {
   //   cv::Mat data;
   //   data = depth_data.clone();
-  cv::medianBlur(data, data, 5);
+  //   cv::medianBlur(data, data, 5);
   //   mask_depth(data, 3000);
   //   region_thread(data);
   //   data.convertTo(data, CV_8UC1, 1);
@@ -1306,13 +1321,16 @@ void D435::get_mean_depth() {
   }
 
   std::vector<double> threshold_data_tmp = threshold_data;
-
-  while (light_stream.size() <= 4) {
-    get_depth();
-    cv::Mat Display = depth_data.clone();
-    Display = thresholding(Display, mean_depth_average, threshold_data_tmp);
-    light_stream.push_back(Display);
-    // std::cout << Display << std::endl;
+  light_stream.resize(2);
+  for (int i = 0; i < light_stream.size(); i++) {
+    while (light_stream[i].size() <= 4) {
+      get_depth();
+      cv::Mat Display = depth_data.clone();
+      Display = thresholding(Display.clone(), mean_depth_average,
+                             threshold_data_tmp, i);
+      light_stream[i].push_back(Display.clone());
+      // std::cout << Di'splay << std::endl;
+    }
   }
   //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
@@ -1334,59 +1352,83 @@ void D435::get_mean_depth() {
       }
       std::cout << std::endl;
 
-      std::cout << "raw_ares_thread :" << are_threshold << std::endl;
       std::cout << "please input ares_thread" << std::endl;
-      std::cin >> are_threshold;
-      std::cout << "are_threshold: " << are_threshold << std::endl;
+      for (int i = 0; i < are_threshold.size(); i++) {
+        std::cout << "raw_ares_thread " << i << ":" << are_threshold[i]
+                  << std::endl;
+        std::cin >> are_threshold[i];
+        std::cout << "are_threshold: " << i << ": " << are_threshold[i]
+                  << std::endl;
+      }
       std::cin.clear();
       std::cin.ignore();
     }
     get_depth();  // 当前帧
     cv::Mat Display = depth_data.clone();
-    Display = thresholding(Display, mean_depth_average, threshold_data_tmp);
-
-    light_stream.emplace_back(Display.clone());
-    cv::Mat tmp = Display;
+    std::vector<cv::Mat> after_threshold_datas;
+    for (int i = 0; i < light_stream.size(); i++) {
+      light_stream[i].emplace_back(thresholding(Display.clone(),
+                                                mean_depth_average,
+                                                threshold_data_tmp, i)
+                                       .clone());
+    }
+    // light_stream.emplace_back(Display.clone());
+    cv::Mat tmp = light_stream[0][5];
     tmp.convertTo(tmp, CV_8UC1, 1);
     cv::imshow("Display_mean_depth", tmp);
     cv::waitKey(1);
     std::cout << "size: " << light_stream.size() << std::endl;
-    for (int i = 0; i < Display.rows; i++) {
-      for (int j = 0; j < Display.cols; j++) {
-        if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
-          Display.at<ushort>(i, j) = 255;
-        } else {
-          int counts_zero = 0;
-
-          for (auto k = light_stream.begin(); k != light_stream.end(); k++) {
-            if ((*k).at<ushort>(i, j) == 0) {
-              counts_zero++;
-            }
-          }
-
-          if (counts_zero <= 4) {
-            Display.at<ushort>(i, j) = 255;
+    for (int h = 0; h < light_stream.size(); h++) {
+      cv::Mat tmp_data = cv::Mat::zeros(Height, Width, CV_16UC1);
+      for (int i = 0; i < Height; i++) {
+        for (int j = 0; j < Width; j++) {
+          if (i < top_edge || i > below_edge || j < left_edge ||
+              j > right_edge) {
+            tmp_data.at<ushort>(i, j) = 255;
           } else {
-            Display.at<ushort>(i, j) = 0;
+            int counts_zero = 0;
+
+            for (auto k = light_stream[h].begin(); k != light_stream[h].end();
+                 k++) {
+              if ((*k).at<ushort>(i, j) == 0) {
+                counts_zero++;
+              }
+            }
+
+            if (counts_zero <= 4) {
+              tmp_data.at<ushort>(i, j) = 255;
+            } else {
+              tmp_data.at<ushort>(i, j) = 0;
+            }
           }
         }
       }
-    }
+      light_stream[h].pop_front();
+      tmp_data.convertTo(tmp_data, CV_8UC1, 1);
 
+      if (h == 0) {
+        cv::imshow("tmp_data1", tmp_data);
+        cv::waitKey(1);
+      } else if (h == 1) {
+        cv::imshow("tmp_data2", tmp_data);
+        cv::waitKey(1);
+      }
+      after_threshold_datas.emplace_back(tmp_data.clone());
+      std::cout << after_threshold_datas.size() << std::endl;
+    }
     // for (auto k = light_stream.begin(); k != light_stream.end(); k++) {
     //     std::cout << *k << std::endl;
     // }
 
-    light_stream.pop_front();
-
-    Display.convertTo(Display, CV_8UC1, 1);
-    cv::imshow("light_after", Display);
-    handle_depth(Display);
+    // Display.convertTo(after_threshold_datas[0], CV_8UC1, 1);
+    // cv::imshow("light_after", Display);
+    std::cout << "in handle depth  " << std::endl;
+    handle_depth(after_threshold_datas);
   }
 }
 
 cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth,
-                           std::vector<double> thread_data) {
+                           std::vector<double> thread_data, int h) {
   //   std::cout << "mean_depth" << mean_depth <<"mean_depth_end"
   //   <<std::endl; std::cout << "raw_data" << data <<"raw_data_end"
   //   <<std::endl;
@@ -1410,7 +1452,7 @@ cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth,
 
         if (static_cast<double>(mean_depth.at<double>(i, j)) -
                 static_cast<double>(data.at<ushort>(i, j)) <
-            thread_data[i]) {
+            thread_data[i] + up_to_nums[h]) {
           data.at<ushort>(i, j) = 255;
         } else {
           data.at<ushort>(i, j) = 0;
