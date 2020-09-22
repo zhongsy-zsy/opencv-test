@@ -1073,187 +1073,236 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
 
 /* 计算阈值参数 */
 void D435::get_mean_depth() {
-  /* 声明局部变量 */
-  cv::Mat out(3000, 500, CV_8UC3, cv::Scalar::all(0));  // 用于绘图
-  calibration_data.open("calibartion_data.csv",
-                        std::ios::out | std::ios::app);  // 记录标定的数据
-  if (calibration_data.is_open()) {
-    std::cout << RED << "open sucess clibration_data" << RESET << std::endl;
-  }
-  std::fstream save_mean_depth;
-  save_mean_depth.open("mean_depth_data.csv", std::ios::out | std::ios::app);
-  if (save_mean_depth.is_open()) {
-    std::cout << RED << "open sucess mean_depth_data" << RESET << std::endl;
-  }
-
   cv::Mat_<double> mean_depth_average = cv::Mat_<double>::zeros(480, 640);
 
-  int flag_t = 0;
+  if (judge_file("mean_depth.png") && judge_file("threshold.csv")) {
+    cv::Mat tmp = cv::imread("mean_depth.png", cv::IMREAD_ANYDEPTH);
+    for (int i = 0; i < tmp.rows; i++) {
+      for (int j = 0; j < tmp.cols; j++) {
+        mean_depth_average.at<double>(i, j) =
+            static_cast<double>(tmp.at<ushort>(i, j));
+      }
+    }
+    std::cout << "mean_depth" << mean_depth_average << std::endl;
+    std::ifstream inFile("threshold.csv", std::ios::in);
+    std::string value;
+    std::vector<double> data;
+    getline(inFile, value);  // 读取整行进value中
+    std::stringstream ss(value);
+    std::string str;
+    while (getline(ss, str, ',')) {
+      data.push_back(atof(str.c_str()));
+    }
+    std::cout << "data" << std::endl;
+    for (auto a : data) {
+      std::cout << a << " ";
+    }
+    std::cout << std::endl;
+    threshold_data = data;
+  } else {
+    /* 声明局部变量 */
+    cv::Mat out(3000, 500, CV_8UC3, cv::Scalar::all(0));  // 用于绘图
+    calibration_data.open("calibartion_data.csv",
+                          std::ios::out | std::ios::app);  // 记录标定的数据
+    if (calibration_data.is_open()) {
+      std::cout << RED << "open sucess clibration_data" << RESET << std::endl;
+    }
+    std::fstream save_mean_depth;
+    save_mean_depth.open("mean_depth_data.csv", std::ios::out | std::ios::app);
+    if (save_mean_depth.is_open()) {
+      std::cout << RED << "open sucess mean_depth_data" << RESET << std::endl;
+    }
 
-  for (int flag = 1; flag <= iter_times; flag++) {
-    cv::Mat tmp_result(480, 640, CV_16UC1);
-    std::vector<cv::Mat> raw_datas;
-    // std::cout << raw_datas.size() << std::endl;
-    cv::Mat_<double> count = cv::Mat_<double>::zeros(480, 640);
-    cv::Mat_<double> result = cv::Mat_<double>::zeros(480, 640);
-    std::cout << "times" << flag << std::endl;
-    cv::waitKey(50);
+    //   cv::Mat_<double> mean_depth_average = cv::Mat_<double>::zeros(480,
+    //   640);
 
-    for (int k = 0; k < samples_nums_up; k++) {
-      get_depth();
+    int flag_t = 0;
+
+    for (int flag = 1; flag <= iter_times; flag++) {
+      cv::Mat tmp_result(480, 640, CV_16UC1);
+      std::vector<cv::Mat> raw_datas;
+      // std::cout << raw_datas.size() << std::endl;
+      cv::Mat_<double> count = cv::Mat_<double>::zeros(480, 640);
+      cv::Mat_<double> result = cv::Mat_<double>::zeros(480, 640);
+      std::cout << "times" << flag << std::endl;
+      cv::waitKey(50);
+
+      for (int k = 0; k < samples_nums_up; k++) {
+        get_depth();
 
 #ifdef DEBUG
-      std::string depth_name("calibration_data");
-      depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
-                   depth_name + std::to_string(k + 1) + ".png";
-      cv::imwrite(depth_name, depth_data);
+        std::string depth_name("calibration_data");
+        depth_name = "/home/zhongsy/Desktop/test/test_opencv/build/raw_data/" +
+                     depth_name + std::to_string(k + 1) + ".png";
+        cv::imwrite(depth_name, depth_data);
 #endif
 
-      cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
-                     below_edge - top_edge);
-      cv::Mat raw_data_edge = depth_data(rect1);
-      cv::Mat edge_data_display = raw_data_edge;
-      edge_data_display.convertTo(edge_data_display, CV_8UC1, 255.0 / 15000.0);
-      cv::imshow("raw_rect_data", edge_data_display);
-      cv::waitKey(10);
-      raw_datas.push_back(raw_data_edge);  //  存放感兴趣区域
-      for (int i = 0; i < depth_data.rows; i++) {
-        for (int j = 0; j < depth_data.cols; j++) {
-          if (depth_data.at<ushort>(i, j) == 0 ||
-              depth_data.at<ushort>(i, j) > 15000) {
+        cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
+                       below_edge - top_edge);
+        cv::Mat raw_data_edge = depth_data(rect1);
+        cv::Mat edge_data_display = raw_data_edge;
+        edge_data_display.convertTo(edge_data_display, CV_8UC1,
+                                    255.0 / 15000.0);
+        cv::imshow("raw_rect_data", edge_data_display);
+        cv::waitKey(10);
+        raw_datas.push_back(raw_data_edge);  //  存放感兴趣区域
+        for (int i = 0; i < depth_data.rows; i++) {
+          for (int j = 0; j < depth_data.cols; j++) {
+            if (depth_data.at<ushort>(i, j) == 0 ||
+                depth_data.at<ushort>(i, j) > 15000) {
+              continue;
+            } else {
+              count.at<double>(i, j) += 1;
+              result.at<double>(i, j) +=
+                  static_cast<double>(depth_data.at<ushort>(i, j));
+            }
+          }
+        }
+        cv::waitKey(15);
+      }
+
+      for (int i = 0; i < result.rows; i++) {
+        for (int j = 0; j < result.cols; j++) {
+          if (count.at<double>(i, j) == 0) {
+            result.at<double>(i, j) = 0;
             continue;
-          } else {
-            count.at<double>(i, j) += 1;
-            result.at<double>(i, j) +=
-                static_cast<double>(depth_data.at<ushort>(i, j));
+          }
+          result.at<double>(i, j) = static_cast<double>(
+              result.at<double>(i, j) / count.at<double>(i, j));
+        }
+      }
+
+      /*
+          保存每一次的均值
+       */
+      save_mean_depth << " maean_depth" << flag << std::endl;
+      for (int i = 0; i < result.rows; i++) {
+        for (int j = 0; j < result.cols; j++) {
+          save_mean_depth << result.at<double>(i, j) << ";";
+        }
+        save_mean_depth << std::endl;
+      }
+      // mean_depth_average += result;  // 将平均值加起来
+      if (flag_t == 0) {
+        mean_depth_average = result;
+        flag_t = 1;
+      } else {
+        for (int i = 0; i < mean_depth_average.rows; i++) {
+          for (int j = 0; j < mean_depth_average.cols; j++) {
+            mean_depth_average.at<double>(i, j) =
+                std::max(mean_depth_average.at<double>(i, j),
+                         result.at<double>(i, j));  // 背景取的是最远的
           }
         }
       }
-      cv::waitKey(15);
+
+      // cv::Mat tmp_result(480, 640, CV_16UC1);
+      for (int i = 0; i < result.rows; i++) {
+        for (int j = 0; j < result.cols; j++) {
+          tmp_result.at<ushort>(i, j) =
+              static_cast<ushort>(result.at<double>(i, j));
+        }
+      }
+//   calculate_poly(result);
+#ifdef DEBUG
+      cv::Mat conv;
+      conv.create(480, 640, CV_16UC1);
+      conv = result;
+      conv.convertTo(conv, CV_16UC1, 1);
+      cv::imwrite("mean_depth.png", conv);
+#endif
+
+      cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
+                    below_edge - top_edge);
+      cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
+
+      if (threshold_data.empty()) {
+        threshold_data =
+            calculate_max_threshold(edge_data, raw_datas);  // 开始计算阈值
+        calibration_data << "time: "
+                         << "," << flag << ","
+                         << "samples_num: "
+                         << "," << flag * samples_nums_up << std::endl;
+        for (auto value : threshold_data) {
+          calibration_data << value << ",";
+        }
+        calibration_data << std::endl;
+      } else {
+        calibration_data << "time: "
+                         << "," << flag << ","
+                         << "samples_num: "
+                         << "," << flag * samples_nums_up << std::endl;
+        std::vector<double> threshold_data_tmp =
+            calculate_max_threshold(edge_data, raw_datas);
+        for (auto value : threshold_data_tmp) {
+          calibration_data << value << ",";
+        }
+        calibration_data << std::endl;
+        for (int l = 0; l < threshold_data.size(); l++) {
+          threshold_data[l] = std::min(
+              threshold_data[l], threshold_data_tmp[l]);  // 取的是最小的阈值
+        }
+      }
+#ifdef DEBUG
+      for (auto a : threshold_data) {
+        std::cout << a << "  ";
+      }
+      std::cout << "threshold size: " << threshold_data.size() << std::endl;
+      std::cout << std::endl;
+#endif
+      // 取四次阈值当中的最大值
+      raw_datas.clear();
     }
 
-    for (int i = 0; i < result.rows; i++) {
-      for (int j = 0; j < result.cols; j++) {
-        if (count.at<double>(i, j) == 0) {
-          result.at<double>(i, j) = 0;
-          continue;
-        }
-        result.at<double>(i, j) = static_cast<double>(result.at<double>(i, j) /
-                                                      count.at<double>(i, j));
-      }
+#ifdef DEBUG
+    for (int i = 0; i < threshold_data.size(); i++) {
+      cv::Point2i drawing;
+      drawing.x = static_cast<int>(i);
+      drawing.y = static_cast<int>(threshold_data[i]);
+      cv::circle(out, drawing, 5, cv::Scalar(255, 255, 255), CV_FILLED, CV_AA);
     }
+    cv::imwrite("calibration.jpg", out);
+#endif
+    /*
+      save calibration data
+   */
+    calibration_data.close();
+    calibration_data.open("threshold.csv", std::ios::out | std::ios::trunc);
+    // calibration_data << "min_threshold" << std::endl;
+    for (int h = 0; h < threshold_data.size(); h++) {
+      // threshold_data[h] = threshold_data[h] ;
+      calibration_data << threshold_data[h] << ",";
+    }
+    calibration_data << std::endl;
+    calibration_data.close();
 
     /*
-        保存每一次的均值
-     */
-    save_mean_depth << " maean_depth" << flag << std::endl;
-    for (int i = 0; i < result.rows; i++) {
-      for (int j = 0; j < result.cols; j++) {
-        save_mean_depth << result.at<double>(i, j) << ";";
+       计算并保存平均深度图
+    */
+
+    //   mean_depth_average = mean_depth_average / iter_times;
+    save_mean_depth << "mean_depth_average" << std::endl;
+    for (int i = 0; i < mean_depth_average.rows; i++) {
+      for (int j = 0; j < mean_depth_average.cols; j++) {
+        save_mean_depth << mean_depth_average.at<double>(i, j) << ",";
       }
       save_mean_depth << std::endl;
     }
-    // mean_depth_average += result;  // 将平均值加起来
-    if (flag_t == 0) {
-      mean_depth_average = result;
-      flag_t = 1;
-    } else {
-      for (int i = 0; i < mean_depth_average.rows; i++) {
-        for (int j = 0; j < mean_depth_average.cols; j++) {
-          mean_depth_average.at<double>(i, j) = std::max(
-              mean_depth_average.at<double>(i, j), result.at<double>(i, j));
-        }
+    // 无损保存深度图
+    std::vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PNG_STRATEGY_DEFAULT);
+    compression_params.push_back(0);  // 无压缩png.
+    cv::Mat conv = cv::Mat::zeros(480, 640, CV_16UC1);
+    for (int i = 0; i < mean_depth_average.rows; i++) {
+      for (int j = 0; j < mean_depth_average.cols; j++) {
+        conv.at<ushort>(i, j) =
+            static_cast<ushort>(mean_depth_average.at<double>(i, j));
       }
     }
-
-    // cv::Mat tmp_result(480, 640, CV_16UC1);
-    for (int i = 0; i < result.rows; i++) {
-      for (int j = 0; j < result.cols; j++) {
-        tmp_result.at<ushort>(i, j) =
-            static_cast<ushort>(result.at<double>(i, j));
-      }
-    }
-//   calculate_poly(result);
-#ifdef DEBUG
-    cv::Mat conv;
-    conv.create(480, 640, CV_16UC1);
-    conv = result;
-    conv.convertTo(conv, CV_16UC1, 1);
-    cv::imwrite("mean_depth.png", conv);
-#endif
-
-    cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
-                  below_edge - top_edge);
-    cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
-
-    if (threshold_data.empty()) {
-      threshold_data =
-          calculate_max_threshold(edge_data, raw_datas);  // 开始计算阈值
-      calibration_data << "time: "
-                       << "," << flag << ","
-                       << "samples_num: "
-                       << "," << flag * samples_nums_up << std::endl;
-      for (auto value : threshold_data) {
-        calibration_data << value << ",";
-      }
-      calibration_data << std::endl;
-    } else {
-      calibration_data << "time: "
-                       << "," << flag << ","
-                       << "samples_num: "
-                       << "," << flag * samples_nums_up << std::endl;
-      std::vector<double> threshold_data_tmp =
-          calculate_max_threshold(edge_data, raw_datas);
-      for (auto value : threshold_data_tmp) {
-        calibration_data << value << ",";
-      }
-      calibration_data << std::endl;
-      for (int l = 0; l < threshold_data.size(); l++) {
-        threshold_data[l] = std::min(threshold_data[l], threshold_data_tmp[l]);
-      }
-    }
-#ifdef DEBUG
-    for (auto a : threshold_data) {
-      std::cout << a << "  ";
-    }
-    std::cout << "threshold size: " << threshold_data.size() << std::endl;
-    std::cout << std::endl;
-#endif
-    // 取四次阈值当中的最大值
-    raw_datas.clear();
-  }
-
-#ifdef DEBUG
-  for (int i = 0; i < threshold_data.size(); i++) {
-    cv::Point2i drawing;
-    drawing.x = static_cast<int>(i);
-    drawing.y = static_cast<int>(threshold_data[i]);
-    cv::circle(out, drawing, 5, cv::Scalar(255, 255, 255), CV_FILLED, CV_AA);
-  }
-  cv::imwrite("calibration.jpg", out);
-#endif
-  /*
-    save calibration data
- */
-
-  calibration_data << "average" << std::endl;
-  for (int h = 0; h < threshold_data.size(); h++) {
-    // threshold_data[h] = threshold_data[h] ;
-    calibration_data << threshold_data[h] << ",";
-  }
-  calibration_data << std::endl;
-
-  /*
-     计算并保存平均深度图
-  */
-
-  //   mean_depth_average = mean_depth_average / iter_times;
-  save_mean_depth << "mean_depth_average" << std::endl;
-  for (int i = 0; i < mean_depth_average.rows; i++) {
-    for (int j = 0; j < mean_depth_average.cols; j++) {
-      save_mean_depth << mean_depth_average.at<double>(i, j) << ",";
-    }
-    save_mean_depth << std::endl;
+    imwrite("mean_depth.png", conv, compression_params);
+    // 显示出来
+    cv::Mat test = cv::imread("mean_depth.png", cv::IMREAD_ANYDEPTH);
+    std::cout << test << std::endl;
   }
 
   std::vector<double> threshold_data_tmp = threshold_data;
@@ -1265,7 +1314,7 @@ void D435::get_mean_depth() {
     light_stream.push_back(Display);
     // std::cout << Display << std::endl;
   }
-//   std::cout << "size_init" << light_stream.size() << std::endl;
+  //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
     if (_kbhit()) {
       std::cin.clear();
@@ -1274,6 +1323,11 @@ void D435::get_mean_depth() {
       std::cout << "please input numbers of threashold" << std::endl;
       double up_data_value = 0;
       std::cin >> up_data_value;
+      std::cout << "raw_data" << std::endl;
+      for (int i = 0; i < threshold_data_tmp.size(); i++) {
+        std::cout << threshold_data_tmp[i] << " ";
+      }
+      std::cout << "deal_after_data" << std::endl;
       for (int i = 0; i < threshold_data_tmp.size(); i++) {
         threshold_data_tmp[i] += up_data_value;
         std::cout << threshold_data_tmp[i] << " ";

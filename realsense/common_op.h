@@ -5,8 +5,11 @@
 #ifndef REALSENSE_COMMON_OP_H_
 #define REALSENSE_COMMON_OP_H_
 
+#include <sys/stat.h>
+
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <string>
 #include <vector>
 
 // the following are UBUNTU/LINUX ONLY terminal color codes.
@@ -31,12 +34,15 @@
 std::vector<double> calculate_threshold(cv::Mat mean_depth,
                                         const std::vector<cv::Mat>& raw_data);
 
-std::vector<double> calculate_max_threshold(cv::Mat mean_depth,
-                                        const std::vector<cv::Mat>& raw_data);
+std::vector<double> calculate_max_threshold(
+    cv::Mat mean_depth, const std::vector<cv::Mat>& raw_data);
 
 int scanKeyboard();
 
 int kbhit(void);
 
 int _kbhit();
+
+bool judge_file(const std::string& name);
+
 #endif

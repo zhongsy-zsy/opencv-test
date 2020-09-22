@@ -258,3 +258,8 @@ int _kbhit() {
   ioctl(STDIN, FIONREAD, &bytesWaiting);
   return bytesWaiting;
 }
+
+bool judge_file(const std::string& name) {
+  struct stat buffer;
+  return (stat(name.c_str(), &buffer) == 0);
+}
