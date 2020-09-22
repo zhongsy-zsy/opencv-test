@@ -1087,11 +1087,11 @@ void D435::get_mean_depth() {
     std::ifstream inFile("threshold.csv", std::ios::in);
     std::string value;
     std::vector<double> data;
-    getline(inFile, value);  // 读取整行进value中
+    getline(inFile, value);  // 读取整行进value中 读取第一行
     std::stringstream ss(value);
     std::string str;
-    while (getline(ss, str, ',')) {
-      data.push_back(atof(str.c_str()));
+    while (getline(ss, str, ',')) {       // 以逗号为分隔读取string
+      data.push_back(atof(str.c_str()));  // string转为double
     }
     std::cout << "data" << std::endl;
     for (auto a : data) {
@@ -1178,7 +1178,7 @@ void D435::get_mean_depth() {
       save_mean_depth << " maean_depth" << flag << std::endl;
       for (int i = 0; i < result.rows; i++) {
         for (int j = 0; j < result.cols; j++) {
-          save_mean_depth << result.at<double>(i, j) << ";";
+          save_mean_depth << result.at<double>(i, j) << ",";
         }
         save_mean_depth << std::endl;
       }
@@ -1301,8 +1301,8 @@ void D435::get_mean_depth() {
     }
     imwrite("mean_depth.png", conv, compression_params);
     // 显示出来
-    cv::Mat test = cv::imread("mean_depth.png", cv::IMREAD_ANYDEPTH);
-    std::cout << test << std::endl;
+    // cv::Mat test = cv::imread("mean_depth.png", cv::IMREAD_ANYDEPTH);
+    // std::cout << test << std::endl;
   }
 
   std::vector<double> threshold_data_tmp = threshold_data;
@@ -1325,7 +1325,7 @@ void D435::get_mean_depth() {
       std::cin >> up_data_value;
       std::cout << "raw_data" << std::endl;
       for (int i = 0; i < threshold_data_tmp.size(); i++) {
-        std::cout << threshold_data_tmp[i] << " ";
+        std::cout << threshold_data[i] << " ";
       }
       std::cout << "deal_after_data" << std::endl;
       for (int i = 0; i < threshold_data_tmp.size(); i++) {
@@ -1334,6 +1334,7 @@ void D435::get_mean_depth() {
       }
       std::cout << std::endl;
 
+      std::cout << "raw_ares_thread :" << are_threshold << std::endl;
       std::cout << "please input ares_thread" << std::endl;
       std::cin >> are_threshold;
       std::cout << "are_threshold: " << are_threshold << std::endl;

@@ -23,13 +23,13 @@ int right_edge = 510;
 int top_edge = 0;
 int below_edge = 480;
 int flag_threads = 0;
-int iter_times = 10;       // 迭代次数
-int samples_nums_up = 40;  // 计算阈值样本增量
+int iter_times = 5;       // 迭代次数
+int samples_nums_up = 80;  // 计算阈值样本增量
 }  // namespace
 namespace {
 const int Width = 640;
 const int Height = 480;
-const int fps = 30;
+const int fps = 60;
 
 }  // namespace
 
