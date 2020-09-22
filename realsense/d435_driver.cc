@@ -6,6 +6,7 @@
 #include <opencv2/imgproc/types_c.h>
 
 #include <algorithm>
+#include <ctime>
 #include <fstream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -1334,15 +1335,18 @@ void D435::get_mean_depth() {
   }
   //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
+    clockid_t start, stop;
+    double duration;
     if (_kbhit()) {
       std::cin.clear();
       std::cin.ignore();
       std::cout << "srart change args" << std::endl;
       std::cout << "please input numbers of threashold" << std::endl;
       double up_data_value = 0;
-      std::cin >> up_data_value;
       std::cout << "raw_data" << std::endl;
-      for (int i = 0; i < threshold_data_tmp.size(); i++) {
+      for (int i = 0; i < up_to_nums.size(); i++) {
+        std::cin >> up_data_value;
+        up_to_nums[i] = up_data_value;
         std::cout << threshold_data[i] << " ";
       }
       std::cout << "deal_after_data" << std::endl;
@@ -1363,6 +1367,7 @@ void D435::get_mean_depth() {
       std::cin.clear();
       std::cin.ignore();
     }
+    start = clock();
     get_depth();  // 当前帧
     cv::Mat Display = depth_data.clone();
     std::vector<cv::Mat> after_threshold_datas;
@@ -1419,11 +1424,16 @@ void D435::get_mean_depth() {
     // for (auto k = light_stream.begin(); k != light_stream.end(); k++) {
     //     std::cout << *k << std::endl;
     // }
-
+    stop = clock();
+    duration = static_cast<double>(stop - start);
+    std::cout << "consume time for depth: " << duration << std::endl;
     // Display.convertTo(after_threshold_datas[0], CV_8UC1, 1);
     // cv::imshow("light_after", Display);
-    std::cout << "in handle depth  " << std::endl;
+    start = clock();
     handle_depth(after_threshold_datas);
+    stop = clock();
+    duration = static_cast<double>(stop - start);
+    std::cout << "consume time for handle: " << duration << std::endl;
   }
 }
 
