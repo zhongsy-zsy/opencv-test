@@ -1351,7 +1351,7 @@ void D435::get_mean_depth() {
       }
       std::cout << "deal_after_data" << std::endl;
       for (int i = 0; i < threshold_data_tmp.size(); i++) {
-        threshold_data_tmp[i] += up_data_value;
+        threshold_data_tmp[i] = up_data_value*threshold_data_tmp[i];
         std::cout << threshold_data_tmp[i] << " ";
       }
       std::cout << std::endl;
