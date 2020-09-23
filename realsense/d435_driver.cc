@@ -62,7 +62,7 @@ void D435::Init() {
 
   are_threshold.push_back(700);
   are_threshold.push_back(100);
-  up_to_nums.push_back(0.7);
+  up_to_nums.push_back(0.5);
   up_to_nums.push_back(1.5);
 
   run_executor_ =
