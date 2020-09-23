@@ -29,7 +29,7 @@ int samples_nums_up = 100;  // 计算阈值样本增量
 namespace {
 const int Width = 640;
 const int Height = 480;
-const int fps = 60;
+const int fps = 30;
 
 }  // namespace
 

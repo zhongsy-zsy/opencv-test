@@ -1372,17 +1372,15 @@ void D435::get_mean_depth() {
     cv::Mat Display = depth_data.clone();
     std::vector<cv::Mat> after_threshold_datas;
     for (int i = 0; i < light_stream.size(); i++) {
-      light_stream[i].emplace_back(thresholding(Display.clone(),
-                                                mean_depth_average,
-                                                threshold_data_tmp, i)
-                                       .clone());
+      light_stream[i].emplace_back(thresholding(
+          Display.clone(), mean_depth_average, threshold_data_tmp, i));
     }
     // light_stream.emplace_back(Display.clone());
     cv::Mat tmp = light_stream[0][5];
     tmp.convertTo(tmp, CV_8UC1, 1);
     cv::imshow("Display_mean_depth", tmp);
     cv::waitKey(1);
-    std::cout << "size: " << light_stream.size() << std::endl;
+    // std::cout << "size: " << light_stream.size() << std::endl;
     for (int h = 0; h < light_stream.size(); h++) {
       cv::Mat tmp_data = cv::Mat::zeros(Height, Width, CV_16UC1);
       for (int i = 0; i < Height; i++) {
@@ -1411,29 +1409,31 @@ void D435::get_mean_depth() {
       light_stream[h].pop_front();
       tmp_data.convertTo(tmp_data, CV_8UC1, 1);
 
-      if (h == 0) {
-        cv::imshow("tmp_data1", tmp_data);
-        cv::waitKey(1);
-      } else if (h == 1) {
-        cv::imshow("tmp_data2", tmp_data);
-        cv::waitKey(1);
-      }
+        if (h == 0) {
+          cv::imshow("tmp_data1", tmp_data);
+          cv::waitKey(1);
+        } else if (h == 1) {
+      cv::imshow("tmp_data2", tmp_data);
+      cv::waitKey(1);
+        }
       after_threshold_datas.emplace_back(tmp_data.clone());
-      std::cout << after_threshold_datas.size() << std::endl;
+      //   std::cout << after_threshold_datas.size() << std::endl;
     }
     // for (auto k = light_stream.begin(); k != light_stream.end(); k++) {
     //     std::cout << *k << std::endl;
     // }
     stop = clock();
-    duration = static_cast<double>(stop - start);
-    std::cout << "consume time for depth: " << duration << std::endl;
+    duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
+    std::cout << "consume time for depth: " << duration << "second"
+              << std::endl;
     // Display.convertTo(after_threshold_datas[0], CV_8UC1, 1);
     // cv::imshow("light_after", Display);
     start = clock();
     handle_depth(after_threshold_datas);
     stop = clock();
-    duration = static_cast<double>(stop - start);
-    std::cout << "consume time for handle: " << duration << std::endl;
+    duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
+    std::cout << "consume time for handle: " << duration << "second"
+              << std::endl;
   }
 }
 
