@@ -60,10 +60,10 @@ void D435::Init() {
                               option_range.max);  // 5(max) is fill all holes
   }
 
-  are_threshold.push_back(500);
+  are_threshold.push_back(700);
   are_threshold.push_back(100);
-  up_to_nums.push_back(-10.0);
-  up_to_nums.push_back(50.0);
+  up_to_nums.push_back(0.7);
+  up_to_nums.push_back(1.5);
 
   run_executor_ =
       std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
@@ -1345,20 +1345,21 @@ void D435::get_mean_depth() {
       double up_data_value = 0;
       std::cout << "raw_data" << std::endl;
       for (int i = 0; i < up_to_nums.size(); i++) {
+        std::cout << up_to_nums[i] << std::endl;
         std::cin >> up_data_value;
         up_to_nums[i] = up_data_value;
+        std::cout << "deal_after_data" << std::endl;
         std::cout << threshold_data[i] << " ";
       }
-      std::cout << "deal_after_data" << std::endl;
-      for (int i = 0; i < threshold_data_tmp.size(); i++) {
-        threshold_data_tmp[i] = up_data_value*threshold_data_tmp[i];
-        std::cout << threshold_data_tmp[i] << " ";
-      }
+    //   for (int i = 0; i < threshold_data_tmp.size(); i++) {
+    //     threshold_data_tmp[i] = up_data_value * threshold_data_tmp[i];
+    //     std::cout << threshold_data_tmp[i] << " ";
+    //   }
       std::cout << std::endl;
 
       std::cout << "please input ares_thread" << std::endl;
       for (int i = 0; i < are_threshold.size(); i++) {
-        std::cout << "raw_ares_thread " << i << ":" << are_threshold[i]
+        std::cout << "raw_ares_thread " << i << ": " << are_threshold[i]
                   << std::endl;
         std::cin >> are_threshold[i];
         std::cout << "are_threshold: " << i << ": " << are_threshold[i]
@@ -1409,13 +1410,13 @@ void D435::get_mean_depth() {
       light_stream[h].pop_front();
       tmp_data.convertTo(tmp_data, CV_8UC1, 1);
 
-        if (h == 0) {
-          cv::imshow("tmp_data1", tmp_data);
-          cv::waitKey(1);
-        } else if (h == 1) {
-      cv::imshow("tmp_data2", tmp_data);
-      cv::waitKey(1);
-        }
+      if (h == 0) {
+        cv::imshow("tmp_data1", tmp_data);
+        cv::waitKey(1);
+      } else if (h == 1) {
+        cv::imshow("tmp_data2", tmp_data);
+        cv::waitKey(1);
+      }
       after_threshold_datas.emplace_back(tmp_data.clone());
       //   std::cout << after_threshold_datas.size() << std::endl;
     }
@@ -1462,7 +1463,7 @@ cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth,
 
         if (static_cast<double>(mean_depth.at<double>(i, j)) -
                 static_cast<double>(data.at<ushort>(i, j)) <
-            thread_data[i] + up_to_nums[h]) {
+            thread_data[i] * up_to_nums[h]) {
           data.at<ushort>(i, j) = 255;
         } else {
           data.at<ushort>(i, j) = 0;
