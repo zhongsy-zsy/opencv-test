@@ -59,6 +59,7 @@ class D435 {
   std::vector<cv::Mat> Get3_depth(cv::Mat mean_depth_average,
                                   const std::vector<double> &threshold_data,
                                   int up_num, int nums);
+  void get_depth2calculate();
   void separate_byte();
   void matching();
   void save_depth_image();
