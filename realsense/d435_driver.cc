@@ -361,7 +361,7 @@ void D435::calculate_mindistance() {
       cv::Rect rect;
       rect = cv::boundingRect(result[i]);
       //   if (rect.area() > 304000) {continue;}
-      ve_rect.push_back(rect);
+      ve_rect.emplace_back(rect);
     }
 
     std::vector<double> res;
@@ -392,11 +392,11 @@ void D435::calculate_mindistance() {
           //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
           // 优化获取的是前面3个最小点的平均值
           if (tmp.empty()) {
-            tmp.push_back(min_dis);
+            tmp.emplace_back(min_dis);
             imageROI.at<ushort>(min_point) = 10000;
           } else {
             if (std::fabs(min_dis - tmp.back()) < 40) {
-              tmp.push_back(min_dis);
+              tmp.emplace_back(min_dis);
               imageROI.at<ushort>(min_point) = 10000;
             } else {
               // 是噪声点
@@ -409,7 +409,7 @@ void D435::calculate_mindistance() {
         for (auto average : tmp) {
           min_dis += average;
         }
-        res.push_back(min_dis / 4.0);
+        res.emplace_back(min_dis / 4.0);
       }
 
       if (!res.empty()) {
@@ -983,8 +983,20 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   //   cv::imshow("diate", data);
   //   cv::waitKey(1);
   //   std::cout << data << std::endl;
+  clock_t start, stop;
+  double duration;
+  start = clock();
   find_obstacle(data, 170, 255, are_threshold);
+  stop = clock();
+  duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
+  std::cout << "consume time for find_obstacle(): " << duration << "second"
+            << std::endl;
+  start = clock();
   calculate_mindistance();
+  stop = clock();
+  duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
+  std::cout << "consume time for calculate_minstance(): " << duration << "second"
+            << std::endl;
 }
 
 void D435::start_calibration() {
