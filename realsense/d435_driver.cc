@@ -35,7 +35,7 @@ void D435::Init() {
   // spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA,0.4f);
   // spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA,4.0f);
   rs2::config cfg;
-  cfg.enable_stream(RS2_STREAM_COLOR, Width, Height, RS2_FORMAT_RGB8, fps);
+  //   cfg.enable_stream(RS2_STREAM_COLOR, Width, Height, RS2_FORMAT_RGB8, fps);
   cfg.enable_stream(RS2_STREAM_DEPTH, Width, Height, RS2_FORMAT_Z16, fps);
   //   cfg.enable_stream(RS2_STREAM_INFRARED, 1, Width, Height, RS2_FORMAT_Y8,
   //   fps); cfg.enable_stream(RS2_STREAM_INFRARED, 2, Width, Height,
@@ -1087,6 +1087,48 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
   //   return mat_k;
 }
 
+/* 获取三帧同时进行处理
+可以试试四 五 六 帧的情况
+*/
+std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
+                                      const std::vector<double> &threshold_data,
+                                      int up_num, int nums) {
+  std::vector<cv::Mat> three_map;
+  std::vector<cv::Mat> deal_result;
+  cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
+
+  for (int i = 0; i < nums; i++) {
+    get_depth();
+    three_map.emplace_back(depth_data.clone());
+  }
+  for (int i = 0; i < three_map[0].rows; i++) {
+    for (int j = 0; j < three_map[0].cols; j++) {
+      if (static_cast<double>(mean_depth_average.at<double>(i, j)) -
+              static_cast<double>(three_map[0].at<ushort>(i, j)) >
+          threshold_data[i]) {
+        raw_deal_result.at<char>(i, j) = 0;
+      } else {
+        raw_deal_result.at<char>(i, j) = 255;
+      }
+    }
+  }
+
+  cv::imshow("raw ", raw_deal_result);
+  cv::waitKey(1);
+
+  for (int k = 0; k < up_num; k++) {
+    cv::Mat result = thresholding(three_map, mean_depth_average, threshold_data,
+                                  k, nums - 1);
+    deal_result.emplace_back(result.clone());
+  }
+
+  cv::imshow("after 0", deal_result[0]);
+  cv::waitKey(1);
+  cv::imshow("after 1", deal_result[1]);
+  cv::waitKey(1);
+  return deal_result;
+}
+
 /* 计算阈值参数 */
 void D435::get_mean_depth() {
   cv::Mat_<double> mean_depth_average = cv::Mat_<double>::zeros(480, 640);
@@ -1322,20 +1364,21 @@ void D435::get_mean_depth() {
   }
 
   std::vector<double> threshold_data_tmp = threshold_data;
-  light_stream.resize(2);
-  for (int i = 0; i < light_stream.size(); i++) {
-    while (light_stream[i].size() <= 4) {
-      get_depth();
-      cv::Mat Display = depth_data.clone();
-      Display = thresholding(Display.clone(), mean_depth_average,
-                             threshold_data_tmp, i);
-      light_stream[i].push_back(Display.clone());
-      // std::cout << Di'splay << std::endl;
-    }
-  }
+  //   light_stream.resize(2);
+  //   for (int i = 0; i < light_stream.size(); i++) {
+  //     while (light_stream[i].size() <= 4) {
+  //       get_depth();
+  //       cv::Mat Display = depth_data.clone();
+  //       Display = thresholding(Display.clone(), mean_depth_average,
+  //                              threshold_data_tmp, i);
+  //       light_stream[i].push_back(Display.clone());
+  //       // std::cout << Di'splay << std::endl;
+  //     }
+  //   }
   //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
     clockid_t start, stop;
+    int nums = 3;
     double duration;
     if (_kbhit()) {
       std::cin.clear();
@@ -1343,18 +1386,15 @@ void D435::get_mean_depth() {
       std::cout << "srart change args" << std::endl;
       std::cout << "please input numbers of threashold" << std::endl;
       double up_data_value = 0;
-      std::cout << "raw_data" << std::endl;
       for (int i = 0; i < up_to_nums.size(); i++) {
+        std::cout << "raw_data: ";
         std::cout << up_to_nums[i] << std::endl;
         std::cin >> up_data_value;
         up_to_nums[i] = up_data_value;
-        std::cout << "deal_after_data" << std::endl;
-        std::cout << threshold_data[i] << " ";
+        std::cout << "deal_after_data: " << std::endl;
+        std::cout << up_to_nums[i] << " ";
       }
-    //   for (int i = 0; i < threshold_data_tmp.size(); i++) {
-    //     threshold_data_tmp[i] = up_data_value * threshold_data_tmp[i];
-    //     std::cout << threshold_data_tmp[i] << " ";
-    //   }
+
       std::cout << std::endl;
 
       std::cout << "please input ares_thread" << std::endl;
@@ -1365,72 +1405,22 @@ void D435::get_mean_depth() {
         std::cout << "are_threshold: " << i << ": " << are_threshold[i]
                   << std::endl;
       }
+
+      std::cout << "if you want to change nums" << std::endl;
+      std::cout << "please input t or f" << std::endl;
+      char tmp;
+      std::cin >> tmp;
+      if (tmp == 't') {
+        int num = 0;
+        std::cout << "please in put a num" << std::endl;
+        std::cin >> num;
+        nums = num;
+      }
       std::cin.clear();
       std::cin.ignore();
     }
     start = clock();
-    get_depth();  // 当前帧
-    cv::Mat Display = depth_data.clone();
-    std::vector<cv::Mat> after_threshold_datas;
-    for (int i = 0; i < light_stream.size(); i++) {
-      light_stream[i].emplace_back(thresholding(
-          Display.clone(), mean_depth_average, threshold_data_tmp, i));
-    }
-    // light_stream.emplace_back(Display.clone());
-    cv::Mat tmp = light_stream[0][5];
-    tmp.convertTo(tmp, CV_8UC1, 1);
-    cv::imshow("Display_mean_depth", tmp);
-    cv::waitKey(1);
-    // std::cout << "size: " << light_stream.size() << std::endl;
-    for (int h = 0; h < light_stream.size(); h++) {
-      cv::Mat tmp_data = cv::Mat::zeros(Height, Width, CV_16UC1);
-      for (int i = 0; i < Height; i++) {
-        for (int j = 0; j < Width; j++) {
-          if (i < top_edge || i > below_edge || j < left_edge ||
-              j > right_edge) {
-            tmp_data.at<ushort>(i, j) = 255;
-          } else {
-            int counts_zero = 0;
-
-            for (auto k = light_stream[h].begin(); k != light_stream[h].end();
-                 k++) {
-              if ((*k).at<ushort>(i, j) == 0) {
-                counts_zero++;
-              }
-            }
-
-            if (counts_zero <= 4) {
-              tmp_data.at<ushort>(i, j) = 255;
-            } else {
-              tmp_data.at<ushort>(i, j) = 0;
-            }
-          }
-        }
-      }
-      light_stream[h].pop_front();
-      tmp_data.convertTo(tmp_data, CV_8UC1, 1);
-
-      if (h == 0) {
-        cv::imshow("tmp_data1", tmp_data);
-        cv::waitKey(1);
-      } else if (h == 1) {
-        cv::imshow("tmp_data2", tmp_data);
-        cv::waitKey(1);
-      }
-      after_threshold_datas.emplace_back(tmp_data.clone());
-      //   std::cout << after_threshold_datas.size() << std::endl;
-    }
-    // for (auto k = light_stream.begin(); k != light_stream.end(); k++) {
-    //     std::cout << *k << std::endl;
-    // }
-    stop = clock();
-    duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-    std::cout << "consume time for depth: " << duration << "second"
-              << std::endl;
-    // Display.convertTo(after_threshold_datas[0], CV_8UC1, 1);
-    // cv::imshow("light_after", Display);
-    start = clock();
-    handle_depth(after_threshold_datas);
+    handle_depth(Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums));
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
     std::cout << "consume time for handle: " << duration << "second"
@@ -1438,39 +1428,35 @@ void D435::get_mean_depth() {
   }
 }
 
-cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth,
-                           std::vector<double> thread_data, int h) {
+cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
+                           const std::vector<double> &thread_data, int h,
+                           int nums) {
   //   std::cout << "mean_depth" << mean_depth <<"mean_depth_end"
   //   <<std::endl; std::cout << "raw_data" << data <<"raw_data_end"
   //   <<std::endl;
-  for (int i = 0; i < data.rows; i++) {
-    for (int j = 0; j < data.cols; j++) {
+  cv::Mat result = cv::Mat::zeros(Height, Width, CV_8UC1);
+  for (int i = 0; i < result.rows; i++) {
+    for (int j = 0; j < result.cols; j++) {
       if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
-        data.at<ushort>(i, j) = 255;
+        result.at<uchar>(i, j) = 255;
       } else {
-        // if (i == 479) {
-        //   std::cout << "first" << mean_depth.at<double>(i, j) <<
-        //   "second"
-        //             << data.at<ushort>(i, j) << "thread" <<
-        //             thread_data[i]<<" ";
-
-        //   std::cout << "diff: "
-        //             << static_cast<double>(mean_depth.at<double>(i, j))
-        //             -
-        //                    static_cast<double>(data.at<ushort>(i, j))
-        //             << "  ";
-        // }
-
-        if (static_cast<double>(mean_depth.at<double>(i, j)) -
-                static_cast<double>(data.at<ushort>(i, j)) <
-            thread_data[i] * up_to_nums[h]) {
-          data.at<ushort>(i, j) = 255;
+        int count = 0;
+        for (int k = 0; k < data.size(); k++) {
+          if (static_cast<double>(mean_depth.at<double>(i, j)) -
+                  static_cast<double>(data[k].at<ushort>(i, j)) >
+              thread_data[i] * up_to_nums[h]) {
+            count++;
+          }
+        }
+        if (count > nums) {
+          result.at<uchar>(i, j) = 0;
         } else {
-          data.at<ushort>(i, j) = 0;
+          result.at<uchar>(i, j) = 255;
         }
       }
     }
   }
+
   // if (static_cast<double>(mean_depth_average.at<ushort>(i, j)) -
   //         static_cast<double>(Display.at<ushort>(i, j)) <
   //     threshold_data[i] * 2.0 * std::pow(1.52, (479 - i) / 200))
@@ -1486,7 +1472,7 @@ cv::Mat D435::thresholding(cv::Mat data, cv::Mat mean_depth,
   //   cv::dilate(data, data, element2);
   //   cv::medianBlur(data, data, 5);  // 中值滤波
   //   data.convertTo(data, CV_8UC1, 1);
-  return data;
+  return result;
 }
 
 void D435::save_depth_image() {

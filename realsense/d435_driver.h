@@ -23,13 +23,13 @@ int right_edge = 510;
 int top_edge = 0;
 int below_edge = 480;
 int flag_threads = 0;
-int iter_times = 2;        // 迭代次数
+int iter_times = 2;         // 迭代次数
 int samples_nums_up = 100;  // 计算阈值样本增量
 }  // namespace
 namespace {
 const int Width = 640;
 const int Height = 480;
-const int fps = 30;
+const int fps = 90;  // 帧数最大能支持90
 
 }  // namespace
 
@@ -56,6 +56,9 @@ class D435 {
   // 实现AbstractDriver的接口
   void Init();
   void GetData(void *data);
+  std::vector<cv::Mat> Get3_depth(cv::Mat mean_depth_average,
+                                  const std::vector<double> &threshold_data,
+                                  int up_num, int nums);
   void separate_byte();
   void matching();
   void save_depth_image();
@@ -66,8 +69,8 @@ class D435 {
   cv::Mat show_depth(int row_start, int row_end, int col_start, int col_end);
   void start_calibration();
   void calculate_poly(cv::Mat mean_depth);
-  cv::Mat thresholding(cv::Mat data, cv::Mat mean_depth,
-                       std::vector<double> threshold_data, int h);
+  cv::Mat thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
+                       const std::vector<double> &thread_data, int h, int nums);
 
  private:
   //自定义接口
@@ -108,7 +111,7 @@ class D435 {
   std::fstream calibration_data;
   std::vector<std::vector<double>> poly;
   std::vector<double> threshold_data;
-  std::vector<std::deque<cv::Mat>> light_stream;
+  std::vector<std::deque<cv::Mat>> light_stream;  // 存放用来平均的图片
   std::vector<int> are_threshold;
   std::vector<double> up_to_nums;
 };
