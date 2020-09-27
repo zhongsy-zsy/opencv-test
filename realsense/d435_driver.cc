@@ -200,40 +200,46 @@ void D435::get_depth() {
             << std::endl;
 }
 
-void D435::get_depth2calculate() {
+std::vector<cv::Mat> D435::get_depth2calculate() {
   clock_t start, stop;
   double duration;
   start = clock();
-  frames = pipe.wait_for_frames();
-  rs2::depth_frame depth_frame = frames.get_depth_frame();
-  rs2::frame filtered_frame = depth_frame;
-  // 应用抽取滤波器（下采样）
-  filtered_frame = decimation_filter.process(filtered_frame);
+  std::vector<cv::Mat> res;
+  for (int i = 0; i < 3; i++) {
+    frames = pipe.wait_for_frames();
+    rs2::depth_frame depth_frame = frames.get_depth_frame();
+    // rs2::frame filtered_frame = depth_frame;
+    // // 应用抽取滤波器（下采样）
+    // filtered_frame = decimation_filter.process(filtered_frame);
 
-  // 从深度帧转换视差帧
-  rs2::disparity_transform disparity_transform(true);
-  filtered_frame = disparity_transform.process(filtered_frame);
-  // 应用空间滤镜（保留边缘的平滑，补孔）
-  //   filtered_frame = spatial_filter.process(filtered_frame);
+    // // 从深度帧转换视差帧
+    // rs2::disparity_transform disparity_transform(true);
+    // //   filtered_frame = disparity_transform.process(filtered_frame);
+    // // 应用空间滤镜（保留边缘的平滑，补孔）
+    // //   filtered_frame = spatial_filter.process(filtered_frame);
 
-  // 应用时间过滤器（使用多个先前的帧进行平滑处理）
-  filtered_frame = temporal_filter.process(filtered_frame);
+    // // 应用时间过滤器（使用多个先前的帧进行平滑处理）
+    // filtered_frame = temporal_filter.process(filtered_frame);
 
-  // 从视差帧变换深度帧
-  rs2::disparity_transform depth_transform(false);
-  filtered_frame = depth_transform.process(filtered_frame);
-  cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
-                (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
+    // // 从视差帧变换深度帧
+    // rs2::disparity_transform depth_transform(false);
+    // filtered_frame = depth_transform.process(filtered_frame);
+    cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
+                  (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
+    res.emplace_back(depth.clone());
+  }
 
-  cv::Mat display = depth.clone();
-  display.convertTo(display, CV_8UC1, 255.0 / 7000.0);
-  cv::imshow("depth_display", display);
-  cv::waitKey(1);
-  depth.copyTo(depth_data);
+  //   cv::Mat display = depth.clone();
+  //   display.convertTo(display, CV_8UC1, 255.0 / 7000.0);
+  //   cv::imshow("depth_display", display);
+  //   cv::waitKey(1);
+  //   depth.copyTo(depth_data);
+  res[1].copyTo(depth_data);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   std::cout << "consume time for Getdepth2calculate(): " << duration << "second"
             << std::endl;
+  return res;
 }
 
 cv::Mat D435::show_depth(int row_start, int row_end, int col_start,
@@ -1174,10 +1180,8 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   std::vector<cv::Mat> deal_result;
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
 
-  for (int i = 0; i < nums; i++) {
-    get_depth2calculate();
-    three_map.emplace_back(depth_data.clone());
-  }
+  three_map = get_depth2calculate();
+
   for (int i = 0; i < three_map[0].rows; i++) {
     for (int j = 0; j < three_map[0].cols; j++) {
       if (static_cast<double>(mean_depth_average.at<double>(i, j)) -
@@ -1211,7 +1215,8 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   for (int k = 0; k < up_num; k++) {
     cv::Mat element = cv::getStructuringElement(
         cv::MORPH_RECT, cv::Size(3, 3));  // 闭操作核的大小
-    cv::morphologyEx(deal_result[k], deal_result[k], cv::MORPH_CLOSE, element);  // 闭操作
+    cv::morphologyEx(deal_result[k], deal_result[k], cv::MORPH_CLOSE,
+                     element);  // 闭操作
   }
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
@@ -1597,7 +1602,10 @@ void D435::save_depth_image() {
 }
 
 void D435::HandleFeedbackData() {
-  get_mean_depth();
+//   while (1) {
+//     get_depth2calculate();
+//   }
+    get_mean_depth();
   //   start_calibration();
   //   save_depth_image();
   // while (1) {
