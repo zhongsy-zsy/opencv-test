@@ -200,15 +200,17 @@ void D435::get_depth() {
             << std::endl;
 }
 
-std::vector<cv::Mat> D435::get_depth2calculate() {
+std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
   clock_t start, stop;
   double duration;
   start = clock();
+  cv::Mat raw_data;
   std::vector<cv::Mat> res;
   for (int i = 0; i < 3; i++) {
     frames = pipe.wait_for_frames();
     rs2::depth_frame depth_frame = frames.get_depth_frame();
-    // rs2::frame filtered_frame = depth_frame;
+    rs2::frame filtered_frame = depth_frame;
+    filtered_frame = colorizered.process(filtered_frame);
     // // 应用抽取滤波器（下采样）
     // filtered_frame = decimation_filter.process(filtered_frame);
 
@@ -226,7 +228,12 @@ std::vector<cv::Mat> D435::get_depth2calculate() {
     // filtered_frame = depth_transform.process(filtered_frame);
     cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
                   (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
-    res.emplace_back(depth.clone());
+    cv::Mat display(cv::Size(Width, Height), CV_8UC3,
+                    (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
+    depth.copyTo(depth_data);
+    cv::imshow("diaplay", display);
+    cv::waitKey(1);
+    res.emplace_back(depth(ROI).clone());
   }
 
   //   cv::Mat display = depth.clone();
@@ -234,7 +241,7 @@ std::vector<cv::Mat> D435::get_depth2calculate() {
   //   cv::imshow("depth_display", display);
   //   cv::waitKey(1);
   //   depth.copyTo(depth_data);
-  res[1].copyTo(depth_data);
+  //   depth.copyTo(depth_data);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   std::cout << "consume time for Getdepth2calculate(): " << duration << "second"
@@ -1172,7 +1179,7 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
 */
 std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
                                       const std::vector<double> &threshold_data,
-                                      int up_num, int nums) {
+                                      int up_num, int nums, cv::Rect ROI) {
   clock_t start, stop;
   double duration;
   start = clock();
@@ -1180,7 +1187,7 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   std::vector<cv::Mat> deal_result;
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
 
-  three_map = get_depth2calculate();
+  three_map = get_depth2calculate(ROI);
 
   for (int i = 0; i < three_map[0].rows; i++) {
     for (int j = 0; j < three_map[0].cols; j++) {
@@ -1527,7 +1534,9 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    handle_depth(Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums));
+    cv::Rect ROI(100, 200, 200, 200);
+    handle_depth(
+        Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums, ROI));
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
     std::cout << "consume time for handle: " << duration << "second"
@@ -1544,25 +1553,21 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   clockid_t start, stop;
   double duration;
   start = clock();
-  cv::Mat result = cv::Mat::zeros(Height, Width, CV_8UC1);
+  cv::Mat result = cv::Mat::zeros(data[0].rows, data[0].cols, CV_8UC1);
   for (int i = 0; i < result.rows; i++) {
     for (int j = 0; j < result.cols; j++) {
-      if (i < top_edge || i > below_edge || j < left_edge || j > right_edge) {
-        result.at<uchar>(i, j) = 255;
+      int count = 0;
+      for (int k = 0; k < data.size(); k++) {
+        if (static_cast<double>(mean_depth.at<double>(i, j)) -
+                static_cast<double>(data[k].at<ushort>(i, j)) >
+            thread_data[i] * up_to_nums[h]) {
+          count++;
+        }
+      }
+      if (count > nums) {
+        result.at<uchar>(i, j) = 0;
       } else {
-        int count = 0;
-        for (int k = 0; k < data.size(); k++) {
-          if (static_cast<double>(mean_depth.at<double>(i, j)) -
-                  static_cast<double>(data[k].at<ushort>(i, j)) >
-              thread_data[i] * up_to_nums[h]) {
-            count++;
-          }
-        }
-        if (count > nums) {
-          result.at<uchar>(i, j) = 0;
-        } else {
-          result.at<uchar>(i, j) = 255;
-        }
+        result.at<uchar>(i, j) = 255;
       }
     }
   }
@@ -1602,10 +1607,10 @@ void D435::save_depth_image() {
 }
 
 void D435::HandleFeedbackData() {
-//   while (1) {
-//     get_depth2calculate();
-//   }
-    get_mean_depth();
+  //   while (1) {
+  //     get_depth2calculate();
+  //   }
+  get_mean_depth();
   //   start_calibration();
   //   save_depth_image();
   // while (1) {
