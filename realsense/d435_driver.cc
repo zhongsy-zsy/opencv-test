@@ -64,7 +64,23 @@ void D435::Init() {
   are_threshold.push_back(100);
   up_to_nums.push_back(0.5);
   up_to_nums.push_back(1.5);
-
+  ration_angle = 30.0 / 180 * pi;
+  frames = pipe.wait_for_frames();
+  rs2::depth_frame depth_tmp = frames.get_depth_frame();
+  dprofile = depth_tmp.get_profile();
+  rs2::video_stream_profile dvsprofile(dprofile);
+  depth_intrin = dvsprofile.get_intrinsics();
+  std::cout << RED;
+  std::cout << "\ndepth intrinsics: ";
+  std::cout << depth_intrin.width << "  " << depth_intrin.height << "  ";
+  std::cout << depth_intrin.ppx << "  " << depth_intrin.ppy << "  ";
+  std::cout << depth_intrin.fx << "  " << depth_intrin.fy << std::endl;
+  std::cout << "coeffs: ";
+  for (auto value : depth_intrin.coeffs) std::cout << value << "  ";
+  std::cout << std::endl;
+  std::cout << "distortion model: " << depth_intrin.model
+            << std::endl;  ///畸变模型
+  std::cout << RESET;
   run_executor_ =
       std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
 }
@@ -200,6 +216,41 @@ void D435::get_depth() {
             << std::endl;
 }
 
+void D435::calibration_angle() {
+  cv::waitKey(10);
+  cv::Vec3f tem;
+  cv::Vec3f res;
+
+  while (1) {
+    get_depth();
+    tem[0] = Width / 2;
+    tem[1] = Height / 2;
+    tem[2] = static_cast<float>(
+        depth_data.at<ushort>(cv::Point(Width / 2, Height / 2)));
+    res[0] = 400;
+    res[1] = 300;
+    res[2] = static_cast<float>(depth_data.at<ushort>(cv::Point(400, 300)));
+    if (res[2] != 0 && res[2] < 4000 && res[1] != 0 && res[1] < 4000) {
+      break;
+    }
+  }
+  std::cout << depth_data.at<ushort>(cv::Point(400, 300)) << std::endl;
+  std::cout << RED << "res tmp: " << res[2] << " " << tem[2] << RESET
+            << std::endl;
+
+  for (float i = 60.0; i > 0.0; i -= 0.1) {
+    std::cout << i << std::endl;
+    ration_angle = (i / 180.0) * pi;
+    cv::Vec3f check1 = pixel_to_world(tem);
+    cv::Vec3f check2 = pixel_to_world(res);
+    std::cout << std::fabs(check1[2] - check2[2]) << std::endl;
+    if (std::fabs(check1[2] - check2[2]) < 1) {
+      std::cout << RED << "angle is :" << i << RESET << std::endl;
+      break;
+    }
+  }
+}
+
 std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
   clock_t start, stop;
   double duration;
@@ -231,6 +282,45 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
     cv::Mat display(cv::Size(Width, Height), CV_8UC3,
                     (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
     depth.copyTo(depth_data);
+    cv::Mat color_diaplay = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
+    cv::namedWindow("diaplay_color", CV_WINDOW_AUTOSIZE);
+    cv::circle(color_diaplay, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
+    cv::circle(display, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
+    cv::circle(display, cv::Point(Width / 2, Height / 2), 3,
+               cv::Scalar(0, 0, 255), 3);
+    cv::Vec3f test;
+    test[2] = depth.at<ushort>(cv::Point(400, 300));
+    test[0] = 400;
+    test[1] = 300;
+    test = pixel_to_world(test);
+    cv::Vec3f test_raw;
+    test_raw[2] = depth.at<ushort>(cv::Point(Width / 2, Height / 2));
+    test_raw[0] = Width / 2;
+    test_raw[1] = Height / 2;
+    test_raw = pixel_to_world(test_raw);
+    cv::putText(display,
+                "X:" + std::to_string(test[0]) + " Y:" +
+                    std::to_string(test[1]) + " Z:" + std::to_string(test[2]),
+                cv::Point(100, 200), 1, 1, cv::Scalar(0, 0, 255));
+    cv::putText(display,
+                "X_raw:" + std::to_string(test_raw[0]) +
+                    " Y_raw:" + std::to_string(test_raw[1]) +
+                    " Z_raw:" + std::to_string(test_raw[2]),
+                cv::Point(100, 250), 1, 1, cv::Scalar(0, 0, 255));
+    cv::putText(
+        display,
+        "X_raw_r:" + std::to_string(test_raw[0]) +
+            " Y_raw_r:" + std::to_string(test_raw[1]) + " Z_raw_r:" +
+            std::to_string(depth.at<ushort>(cv::Point(Width / 2, Height / 2))),
+        cv::Point(100, 280), 1, 1, cv::Scalar(0, 0, 255));
+    cv::putText(
+        display,
+        "X_raw_l:" + std::to_string(test_raw[0]) +
+            " Y_raw_l:" + std::to_string(test_raw[1]) + " Z_raw_l:" +
+            std::to_string(depth.at<ushort>(cv::Point(400, 300))),
+        cv::Point(100, 300), 1, 1, cv::Scalar(0, 0, 255));
+    cv::imshow("diaplay_color", color_diaplay);
+    cv::waitKey(1);
     cv::imshow("diaplay", display);
     cv::waitKey(1);
     res.emplace_back(depth(ROI).clone());
@@ -360,7 +450,7 @@ void D435::quit_black_block(cv::Mat &image) {
   }
 }
 
-void D435::calculate_mindistance() {
+void D435::calculate_mindistance(float threshold_x, float threshold_y) {
   std::vector<cv::Rect> ve_rect;
   cv::Mat drawing = cv::Mat::zeros(cv::Size(640, 480), CV_8UC3);
 
@@ -387,8 +477,20 @@ void D435::calculate_mindistance() {
         cv::rectangle(drawing, ve_rect[i], cv::Scalar(2, 0, 255));
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
-            if (imageROI.at<ushort>(i, j) == 0) {
-              imageROI.at<ushort>(i, j) = 3000;
+            float Z = static_cast<float>(imageROI.at<ushort>(i, j));
+            float X =
+                (j * Z - depth_intrin.ppx * Z) /
+                depth_intrin
+                    .fx;  // 这是考虑的没有畸变的情况，如果有畸变那么就是另外的情况了
+            float Y = (i * Z - depth_intrin.ppy * Z) / depth_intrin.fy;
+            // 进行相机坐标到车体坐标的转换
+            Z = -std::sin(ration_angle) * Y + std::cos(ration_angle) * Z;
+            Y = std::cos(ration_angle) * Y + std::sin(ration_angle) * Z;
+            if (imageROI.at<ushort>(i, j) == 0 ||
+                std::fabs(Z) > threshold_x) {  // 这边可以再加一个Y的阈值
+              imageROI.at<ushort>(i, j) = 4000;
+            } else {
+              imageROI.at<ushort>(i, j) = static_cast<ushort>(Z);
             }
           }
         }
@@ -446,6 +548,22 @@ void D435::calculate_mindistance() {
     }
   }
   result.clear();
+}
+
+cv::Vec3f D435::pixel_to_world(cv::Vec3f point) {
+  cv::Vec3f result;
+  result[0] =
+      (point[0] * point[2] - depth_intrin.ppx * point[2]) / depth_intrin.fx;
+  result[1] =
+      (point[1] * point[2] - depth_intrin.ppy * point[2]) / depth_intrin.fy;
+  result[2] = point[2];
+
+  result[2] =
+      -std::sin(ration_angle) * result[1] + std::cos(ration_angle) * result[2];
+  result[1] =
+      std::cos(ration_angle) * result[1] + std::sin(ration_angle) * result[2];
+
+  return result;
 }
 
 void D435::caculate_thread4() {
@@ -1005,7 +1123,7 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   std::cout << "consume time for find_obstacle(): " << duration << "second"
             << std::endl;
   start = clock();
-  calculate_mindistance();
+  calculate_mindistance(300, 200);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   std::cout << "consume time for calculate_minstance(): " << duration
@@ -1610,6 +1728,7 @@ void D435::HandleFeedbackData() {
   //   while (1) {
   //     get_depth2calculate();
   //   }
+  calibration_angle();
   get_mean_depth();
   //   start_calibration();
   //   save_depth_image();

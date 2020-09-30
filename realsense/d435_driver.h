@@ -14,6 +14,7 @@
 #include "GRANSAC.hpp"
 #include "PlaneModel.hpp"
 
+const float pi = 3.1415926;
 // #define DEBUG ;
 
 /* 划定标定范围 */
@@ -58,7 +59,7 @@ class D435 {
   void GetData(void *data);
   std::vector<cv::Mat> Get3_depth(cv::Mat mean_depth_average,
                                   const std::vector<double> &threshold_data,
-                                  int up_num, int nums,cv::Rect ROI);
+                                  int up_num, int nums, cv::Rect ROI);
   std::vector<cv::Mat> get_depth2calculate(cv::Rect ROI);
   void separate_byte();
   void matching();
@@ -72,6 +73,7 @@ class D435 {
   void calculate_poly(cv::Mat mean_depth);
   cv::Mat thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
                        const std::vector<double> &thread_data, int h, int nums);
+  void calibration_angle();
 
  private:
   //自定义接口
@@ -84,9 +86,10 @@ class D435 {
   void mask_depth(cv::Mat &image, int throld = 3000);
   void find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
                      std::vector<int> areas);
-  void calculate_mindistance();
+  void calculate_mindistance(float threshold_x, float threshold_y);
   void region_thread(cv::Mat &data);
   void caculate_thread4();
+  cv::Vec3f pixel_to_world(cv::Vec3f point);
   std::shared_ptr<std::thread> run_executor_;
   rs2::context ctx;
   rs2::frameset frames;
@@ -115,5 +118,8 @@ class D435 {
   std::vector<std::deque<cv::Mat>> light_stream;  // 存放用来平均的图片
   std::vector<int> are_threshold;
   std::vector<double> up_to_nums;
+  rs2::stream_profile dprofile;  // 用来存放深度相机参数
+  rs2_intrinsics depth_intrin;
+  float ration_angle;
 };
 #endif  // REALSENSE_D435_DRIVER_H_
