@@ -64,7 +64,7 @@ void D435::Init() {
   are_threshold.push_back(100);
   up_to_nums.push_back(0.5);
   up_to_nums.push_back(1.5);
-  ration_angle = 30.0 / 180 * pi;
+  //   ration_angle = 30.0 / 180 * pi;
   frames = pipe.wait_for_frames();
   rs2::depth_frame depth_tmp = frames.get_depth_frame();
   dprofile = depth_tmp.get_profile();
@@ -217,37 +217,53 @@ void D435::get_depth() {
 }
 
 void D435::calibration_angle() {
-  cv::waitKey(10);
-  cv::Vec3f tem;
-  cv::Vec3f res;
-
-  while (1) {
-    get_depth();
-    tem[0] = Width / 2;
-    tem[1] = Height / 2;
-    tem[2] = static_cast<float>(
-        depth_data.at<ushort>(cv::Point(Width / 2, Height / 2)));
-    res[0] = 400;
-    res[1] = 300;
-    res[2] = static_cast<float>(depth_data.at<ushort>(cv::Point(400, 300)));
-    if (res[2] != 0 && res[2] < 4000 && res[1] != 0 && res[1] < 4000) {
-      break;
+  if (judge_file("angle_data.csv")) {
+    std::ifstream inFile("angle_data.csv", std::ios::in);
+    std::string value;
+    std::vector<double> data;
+    getline(inFile, value);  // 读取整行进value中 读取第一行
+    std::stringstream ss(value);
+    std::string str;
+    while (getline(ss, str, ',')) {  // 以逗号为分隔读取string
+      ration_angle = static_cast<float>(atof(str.c_str()));  // string转为double
     }
-  }
-  std::cout << depth_data.at<ushort>(cv::Point(400, 300)) << std::endl;
-  std::cout << RED << "res tmp: " << res[2] << " " << tem[2] << RESET
-            << std::endl;
+    std::cout << RED << "ration_angle: " << ration_angle << RESET << std::endl;
+  } else {
+    calibration_data.open("angle_data.csv", std::ios::out | std::ios::trunc);
+    cv::waitKey(10);
+    cv::Vec3f tem;
+    cv::Vec3f res;
 
-  for (float i = 60.0; i > 0.0; i -= 0.1) {
-    std::cout << i << std::endl;
-    ration_angle = (i / 180.0) * pi;
-    cv::Vec3f check1 = pixel_to_world(tem);
-    cv::Vec3f check2 = pixel_to_world(res);
-    std::cout << std::fabs(check1[2] - check2[2]) << std::endl;
-    if (std::fabs(check1[2] - check2[2]) < 1) {
-      std::cout << RED << "angle is :" << i << RESET << std::endl;
-      break;
+    while (1) {
+      get_depth();
+      tem[0] = Width / 2;
+      tem[1] = Height / 2;
+      tem[2] = static_cast<float>(
+          depth_data.at<ushort>(cv::Point(Width / 2, Height / 2)));
+      res[0] = 400;
+      res[1] = 300;
+      res[2] = static_cast<float>(depth_data.at<ushort>(cv::Point(400, 300)));
+      if (res[2] != 0 && res[2] < 4000 && tem[2] != 0 && tem[2] < 4000) {
+        break;
+      }
     }
+    std::cout << depth_data.at<ushort>(cv::Point(400, 300)) << std::endl;
+    std::cout << RED << "res tmp: " << res[2] << " " << tem[2] << RESET
+              << std::endl;
+
+    for (float i = 60.0; i > 0.0; i -= 0.1) {
+      std::cout << i << std::endl;
+      ration_angle = (i / 180.0) * pi;
+      cv::Vec3f check1 = pixel_to_world(tem);
+      cv::Vec3f check2 = pixel_to_world(res);
+      std::cout << std::fabs(check1[2] - check2[2]) << std::endl;
+      if (std::fabs(check1[2] - check2[2]) < 1) {
+        std::cout << RED << "angle is :" << i << RESET << std::endl;
+        calibration_data << i << "," << std::endl;
+        break;
+      }
+    }
+    calibration_data.close();
   }
 }
 
@@ -313,12 +329,11 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
             " Y_raw_r:" + std::to_string(test_raw[1]) + " Z_raw_r:" +
             std::to_string(depth.at<ushort>(cv::Point(Width / 2, Height / 2))),
         cv::Point(100, 280), 1, 1, cv::Scalar(0, 0, 255));
-    cv::putText(
-        display,
-        "X_raw_l:" + std::to_string(test_raw[0]) +
-            " Y_raw_l:" + std::to_string(test_raw[1]) + " Z_raw_l:" +
-            std::to_string(depth.at<ushort>(cv::Point(400, 300))),
-        cv::Point(100, 300), 1, 1, cv::Scalar(0, 0, 255));
+    cv::putText(display,
+                "X_raw_l:" + std::to_string(test_raw[0]) +
+                    " Y_raw_l:" + std::to_string(test_raw[1]) + " Z_raw_l:" +
+                    std::to_string(depth.at<ushort>(cv::Point(400, 300))),
+                cv::Point(100, 300), 1, 1, cv::Scalar(0, 0, 255));
     cv::imshow("diaplay_color", color_diaplay);
     cv::waitKey(1);
     cv::imshow("diaplay", display);
