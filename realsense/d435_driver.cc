@@ -230,7 +230,6 @@ void D435::calibration_angle() {
     }
     std::cout << RED << "ration_angle: " << ration_angle << RESET << std::endl;
   } else {
-    calibration_data.open("angle_data.csv", std::ios::out | std::ios::trunc);
     cv::waitKey(10);
     cv::Vec3f tem;
     cv::Vec3f res;
@@ -252,19 +251,23 @@ void D435::calibration_angle() {
     std::cout << RED << "res tmp: " << res[2] << " " << tem[2] << RESET
               << std::endl;
 
-    for (float i = 60.0; i > 0.0; i -= 0.1) {
-      std::cout << i << std::endl;
-      ration_angle = -(i / 180.0) * pi;
+    for (float i = 70.0; i > 0.0; i -= 0.1) {
+      std::cout << "angle" << i << std::endl;
+      ration_angle = (i / 180.0) * pi;
       cv::Vec3f check1 = pixel_to_world(tem);
       cv::Vec3f check2 = pixel_to_world(res);
       std::cout << std::fabs(check1[2] - check2[2]) << std::endl;
       if (std::fabs(check1[2] - check2[2]) < 1) {
+        calibration_data.open("angle_data.csv",
+                              std::ios::out | std::ios::trunc);
+
         std::cout << RED << "angle is :" << i << RESET << std::endl;
-        calibration_data << -i << "," << std::endl;
+        calibration_data << i << "," << std::endl;
+        calibration_data.close();
+
         break;
       }
     }
-    calibration_data.close();
   }
 }
 
