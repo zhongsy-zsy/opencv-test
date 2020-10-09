@@ -500,25 +500,32 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
     }
     std::vector<double> res;
     if (!ve_rect.empty()) {
+      cv::Rect ROI(200, 0, 200, 480);
+      cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
-        cv::Mat imageROI(depth_data, ve_rect[i]);
+        cv::Mat imageROI(ROI_depth, ve_rect[i]);
+        int x_delta = ve_rect[i].x;
+        int y_delta = ve_rect[i].y;
+        std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols << " "
+                  << ROI.x << " " << ROI.y << std::endl;
         // cv::imshow("ROI", imageROI);
         // cv::waitKey(1);
         // 过滤零点
-        cv::rectangle(drawing, ve_rect[i], cv::Scalar(2, 0, 255));
+        cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
             float Z = static_cast<float>(imageROI.at<ushort>(i, j));
             float X =
-                (j * Z - depth_intrin.ppx * Z) /
+                ((j + ROI.x + x_delta) * Z - depth_intrin.ppx * Z) /
                 depth_intrin
                     .fx;  // 这是考虑的没有畸变的情况，如果有畸变那么就是另外的情况了
-            float Y = (i * Z - depth_intrin.ppy * Z) / depth_intrin.fy;
+            float Y = ((i + ROI.y + y_delta) * Z - depth_intrin.ppy * Z) /
+                      depth_intrin.fy;
             // 进行相机坐标到车体坐标的转换
             Z = -std::sin(ration_angle) * Y + std::cos(ration_angle) * Z;
             Y = std::cos(ration_angle) * Y + std::sin(ration_angle) * Z;
             if (imageROI.at<ushort>(i, j) == 0 ||
-                std::fabs(Z) > threshold_x) {  // 这边可以再加一个Y的阈值
+                std::fabs(X) > threshold_x) {  // 这边可以再加一个Y的阈值
               imageROI.at<ushort>(i, j) = 4000;
             } else {
               imageROI.at<ushort>(i, j) = static_cast<ushort>(Z);
