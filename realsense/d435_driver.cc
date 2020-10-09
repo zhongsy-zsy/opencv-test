@@ -342,6 +342,7 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
     cv::waitKey(1);
     cv::imshow("diaplay", display);
     cv::waitKey(1);
+    cv::imshow("roi_depth", depth(ROI));
     res.emplace_back(depth(ROI).clone());
   }
 
@@ -1353,8 +1354,8 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   cv::waitKey(1);
 
   for (int k = 0; k < up_num; k++) {
-    cv::Mat result = thresholding(three_map, mean_depth_average, threshold_data,
-                                  k, nums - 1);
+    cv::Mat result = thresholding(three_map, mean_depth_average(ROI),
+                                  threshold_data, k, nums - 1);
     deal_result.emplace_back(result.clone());
   }
 
@@ -1682,7 +1683,11 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    cv::Rect ROI(100, 200, 200, 200);
+    cv::Rect ROI(200, 0, 200, 480);
+    cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
+
+    cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
+    cv::imshow("display_rect", display_rect1);
     handle_depth(
         Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums, ROI));
     stop = clock();
