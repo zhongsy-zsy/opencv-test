@@ -263,3 +263,10 @@ bool judge_file(const std::string& name) {
   struct stat buffer;
   return (stat(name.c_str(), &buffer) == 0);
 }
+
+bool isInside(cv::Rect rect1, cv::Rect rect2) {
+  cv::Rect tmp = rect1 & rect2;
+  return (rect1 == tmp || rect2 == tmp);
+}
+
+bool cmp(cv::Rect a, cv::Rect b) { return a.area() > b.area(); }

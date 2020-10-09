@@ -171,37 +171,37 @@ void D435::get_depth() {
   filtered_frame = decimation_filter.process(filtered_frame);
   //   stop = clock();
   //   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for xiacaiyang: " << duration << "second"
-  //             << std::endl;
+  std::cout << "consume time for xiacaiyang: " << duration << "second"
+            << std::endl;
   //   // 从深度帧转换视差帧
   //   start = clock();
   rs2::disparity_transform disparity_transform(true);
   filtered_frame = disparity_transform.process(filtered_frame);
   //   stop = clock();
-  //   std::cout << "consume time for depth_to_diff: " << duration << "second"
-  //             << std::endl;
+  std::cout << "consume time for depth_to_diff: " << duration << "second"
+            << std::endl;
   //   start = clock();
   // 应用空间滤镜（保留边缘的平滑，补孔）
   filtered_frame = spatial_filter.process(filtered_frame);
   //   stop = clock();
   //   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for spatial_filter: " << duration << "second"
-  //             << std::endl;
+  std::cout << "consume time for spatial_filter: " << duration << "second"
+            << std::endl;
   // 应用时间过滤器（使用多个先前的帧进行平滑处理）
   //   start = clock();
   filtered_frame = temporal_filter.process(filtered_frame);
   //   stop = clock();
   //   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for time_filter: " << duration << "second"
-  //             << std::endl;
+  std::cout << "consume time for time_filter: " << duration << "second"
+            << std::endl;
   // 从视差帧变换深度帧
   //   start = clock();
   rs2::disparity_transform depth_transform(false);
   filtered_frame = depth_transform.process(filtered_frame);
   //   stop = clock();
   //   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for diff_to_depth: " << duration << "second"
-  //             << std::endl;
+  std::cout << "consume time for diff_to_depth: " << duration << "second"
+            << std::endl;
   cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
                 (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
 
@@ -212,8 +212,8 @@ void D435::get_depth() {
   depth.copyTo(depth_data);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for Getdepth(): " << duration << "second"
-            << std::endl;
+  //   std::cout << "consume time for Getdepth(): " << duration << "second"
+  // << std::endl;
 }
 
 void D435::calibration_angle() {
@@ -226,6 +226,7 @@ void D435::calibration_angle() {
     std::string str;
     while (getline(ss, str, ',')) {  // 以逗号为分隔读取string
       ration_angle = static_cast<float>(atof(str.c_str()));  // string转为double
+      ration_angle = ration_angle / 180.0 * pi;
     }
     std::cout << RED << "ration_angle: " << ration_angle << RESET << std::endl;
   } else {
@@ -253,13 +254,13 @@ void D435::calibration_angle() {
 
     for (float i = 60.0; i > 0.0; i -= 0.1) {
       std::cout << i << std::endl;
-      ration_angle = (i / 180.0) * pi;
+      ration_angle = -(i / 180.0) * pi;
       cv::Vec3f check1 = pixel_to_world(tem);
       cv::Vec3f check2 = pixel_to_world(res);
       std::cout << std::fabs(check1[2] - check2[2]) << std::endl;
       if (std::fabs(check1[2] - check2[2]) < 1) {
         std::cout << RED << "angle is :" << i << RESET << std::endl;
-        calibration_data << i << "," << std::endl;
+        calibration_data << -i << "," << std::endl;
         break;
       }
     }
@@ -349,8 +350,9 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
   //   depth.copyTo(depth_data);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for Getdepth2calculate(): " << duration << "second"
-            << std::endl;
+  //   std::cout << "consume time for Getdepth2calculate(): " << duration <<
+  //   "second"
+  // << std::endl;
   return res;
 }
 
@@ -482,6 +484,16 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
       ve_rect.emplace_back(rect);
     }
 
+    // 去除重复框
+    std::sort(ve_rect.begin(), ve_rect.end(), cmp);
+    for (auto i = ve_rect.begin(); i < ve_rect.end(); i++) {
+      for (auto j = i + 1; j < ve_rect.end(); j++) {
+        if (isInside((*i), (*j))) {
+          ve_rect.erase(j);
+          j--;
+        }
+      }
+    }
     std::vector<double> res;
     if (!ve_rect.empty()) {
       for (int i = 0; i < ve_rect.size(); i++) {
@@ -523,11 +535,11 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
           // 优化获取的是前面3个最小点的平均值
           if (tmp.empty()) {
             tmp.emplace_back(min_dis);
-            imageROI.at<ushort>(min_point) = 10000;
+            imageROI.at<ushort>(min_point) = 4000;
           } else {
             if (std::fabs(min_dis - tmp.back()) < 40) {
               tmp.emplace_back(min_dis);
-              imageROI.at<ushort>(min_point) = 10000;
+              imageROI.at<ushort>(min_point) = 4000;
             } else {
               // 是噪声点
               tmp.pop_back();
@@ -1135,14 +1147,14 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   find_obstacle(data, 170, 255, are_threshold);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for find_obstacle(): " << duration << "second"
-            << std::endl;
+  //   std::cout << "consume time for find_obstacle(): " << duration << "second"
+  // << std::endl;
   start = clock();
   calculate_mindistance(300, 200);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for calculate_minstance(): " << duration
-            << "second" << std::endl;
+  //   std::cout << "consume time for calculate_minstance(): " << duration
+  // << "second" << std::endl;
 }
 
 void D435::start_calibration() {
@@ -1349,8 +1361,8 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   cv::waitKey(1);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for Get3depth(): " << duration << "second"
-            << std::endl;
+  //   std::cout << "consume time for Get3depth(): " << duration << "second"
+  // << std::endl;
   start = clock();
   for (int k = 0; k < up_num; k++) {
     cv::Mat element = cv::getStructuringElement(
@@ -1360,8 +1372,8 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   }
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for close(): " << duration << "second"
-            << std::endl;
+  //   std::cout << "consume time for close(): " << duration << "second"
+  // << std::endl;
   cv::imshow("close 0", deal_result[0]);
   cv::waitKey(1);
   cv::imshow("close 1", deal_result[1]);
@@ -1672,8 +1684,8 @@ void D435::get_mean_depth() {
         Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums, ROI));
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-    std::cout << "consume time for handle: " << duration << "second"
-              << std::endl;
+    // std::cout << "consume time for handle: " << duration << "second"
+    //   << std::endl;
   }
 }
 
@@ -1722,8 +1734,8 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   //   data.convertTo(data, CV_8UC1, 1);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  std::cout << "consume time for thresholding(): " << duration << "second"
-            << std::endl;
+  //   std::cout << "consume time for thresholding(): " << duration << "second"
+  // << std::endl;
   return result;
 }
 

@@ -43,6 +43,11 @@ int kbhit(void);
 
 int _kbhit();
 
-bool judge_file(const std::string& name);
+bool judge_file(const std::string& name);  // 判断文件是否存在
+
+bool isInside(cv::Rect rect1,
+              cv::Rect rect2);  // 判断两个矩形是否有一方包含另外一方
+
+bool cmp(cv::Rect a, cv::Rect b);
 
 #endif
