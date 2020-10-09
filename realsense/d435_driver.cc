@@ -251,7 +251,7 @@ void D435::calibration_angle() {
     std::cout << RED << "res tmp: " << res[2] << " " << tem[2] << RESET
               << std::endl;
 
-    for (float i = 70.0; i > 0.0; i -= 0.1) {
+    for (float i = 0.0; i < 70.0; i += 0.1) {
       std::cout << "angle" << i << std::endl;
       ration_angle = (i / 180.0) * pi;
       cv::Vec3f check1 = pixel_to_world(tem);
@@ -500,10 +500,10 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
     }
     std::vector<double> res;
     if (!ve_rect.empty()) {
-      cv::Rect ROI(200, 0, 200, 480);
+      cv::Rect ROI(200, 0, 300, 480);
       cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
-        cv::Mat imageROI(ROI_depth, ve_rect[i]);
+        cv::Mat imageROI = ROI_depth(ve_rect[i]);
         int x_delta = ve_rect[i].x;
         int y_delta = ve_rect[i].y;
         std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols << " "
@@ -511,15 +511,25 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         // cv::imshow("ROI", imageROI);
         // cv::waitKey(1);
         // 过滤零点
+        cv::Vec3f test;
+        test[0] = 120 + ROI.x;
+        test[1] = 240 + ROI.y;
+        test[2] = imageROI.at<ushort>(cv::Point(120, 240));
+        test = pixel_to_world(test);
+        std::cout << "test[0]: " << test[0] << "test1: " << test[1] << "test[2]"
+                  << test[2] << std::endl;
+
         cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
             float Z = static_cast<float>(imageROI.at<ushort>(i, j));
             float X =
-                ((j + ROI.x + x_delta) * Z - depth_intrin.ppx * Z) /
+                (static_cast<float>((j + ROI.x + x_delta) * Z) -
+                 depth_intrin.ppx * Z) /
                 depth_intrin
                     .fx;  // 这是考虑的没有畸变的情况，如果有畸变那么就是另外的情况了
-            float Y = ((i + ROI.y + y_delta) * Z - depth_intrin.ppy * Z) /
+            float Y = (static_cast<float>((i + ROI.y + y_delta) * Z) -
+                       depth_intrin.ppy * Z) /
                       depth_intrin.fy;
             // 进行相机坐标到车体坐标的转换
             Z = -std::sin(ration_angle) * Y + std::cos(ration_angle) * Z;
@@ -1161,7 +1171,7 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   //   std::cout << "consume time for find_obstacle(): " << duration << "second"
   // << std::endl;
   start = clock();
-  calculate_mindistance(300, 200);
+  calculate_mindistance(450, 200);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   //   std::cout << "consume time for calculate_minstance(): " << duration
@@ -1690,7 +1700,7 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    cv::Rect ROI(200, 0, 200, 480);
+    cv::Rect ROI(200, 0, 300, 480);
     cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
     cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
