@@ -498,6 +498,11 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         }
       }
     }
+    /* 进行rect减半操作 */
+    // for (auto i = ve_rect.begin(); i < ve_rect.end(); i++) {
+    //   (*i) = (*i) + cv::Point((*i).width / 2, (*i).height / 2);
+    //   (*i) = (*i) + cv::Size(-(*i).width / 2, -(*i).height / 2);
+    // }
     std::vector<double> res;
     if (!ve_rect.empty()) {
       cv::Rect ROI(200, 0, 300, 480);
