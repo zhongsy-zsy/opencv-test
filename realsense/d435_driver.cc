@@ -473,7 +473,7 @@ void D435::quit_black_block(cv::Mat &image) {
 
 void D435::calculate_mindistance(float threshold_x, float threshold_y) {
   std::vector<cv::Rect> ve_rect;
-  cv::Mat drawing = cv::Mat::zeros(cv::Size(640, 480), CV_8UC3);
+  cv::Mat drawing = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
 
   if (result.empty()) {
     // 设置避障等级为0
@@ -514,7 +514,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         cv::Vec3f test;
         test[0] = 120 + ROI.x;
         test[1] = 240 + ROI.y;
-        test[2] = imageROI.at<ushort>(cv::Point(120, 240));
+        test[2] = ROI_depth.at<ushort>(cv::Point(120, 240));
         test = pixel_to_world(test);
         std::cout << "test[0]: " << test[0] << "test1: " << test[1] << "test[2]"
                   << test[2] << std::endl;
@@ -550,6 +550,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         std::vector<int> tmp;
 
         // for(int i=0;i<3;i++)
+        std::cout << "imageROI" << imageROI << std::endl;
         while (tmp.size() <= 3) {
           cv::minMaxLoc(imageROI, &min_dis, NULL, &min_point, NULL);
           //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
@@ -1411,7 +1412,7 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
 
 /* 计算阈值参数 */
 void D435::get_mean_depth() {
-  cv::Mat_<double> mean_depth_average = cv::Mat_<double>::zeros(480, 640);
+  cv::Mat_<double> mean_depth_average = cv::Mat_<double>::zeros(Height, Width);
 
   if (judge_file("mean_depth.png") && judge_file("threshold.csv")) {
     cv::Mat tmp = cv::imread("mean_depth.png", cv::IMREAD_ANYDEPTH);
@@ -1457,11 +1458,11 @@ void D435::get_mean_depth() {
     int flag_t = 0;
 
     for (int flag = 1; flag <= iter_times; flag++) {
-      cv::Mat tmp_result(480, 640, CV_16UC1);
+      cv::Mat tmp_result(Height, Width, CV_16UC1);
       std::vector<cv::Mat> raw_datas;
       // std::cout << raw_datas.size() << std::endl;
-      cv::Mat_<double> count = cv::Mat_<double>::zeros(480, 640);
-      cv::Mat_<double> result = cv::Mat_<double>::zeros(480, 640);
+      cv::Mat_<double> count = cv::Mat_<double>::zeros(Height, Width);
+      cv::Mat_<double> result = cv::Mat_<double>::zeros(Height, Width);
       std::cout << "times" << flag << std::endl;
       cv::waitKey(50);
 
@@ -1630,7 +1631,7 @@ void D435::get_mean_depth() {
     std::vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PNG_STRATEGY_DEFAULT);
     compression_params.push_back(0);  // 无压缩png.
-    cv::Mat conv = cv::Mat::zeros(480, 640, CV_16UC1);
+    cv::Mat conv = cv::Mat::zeros(Height, Width, CV_16UC1);
     for (int i = 0; i < mean_depth_average.rows; i++) {
       for (int j = 0; j < mean_depth_average.cols; j++) {
         conv.at<ushort>(i, j) =

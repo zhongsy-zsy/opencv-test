@@ -28,7 +28,7 @@ int iter_times = 2;         // 迭代次数
 int samples_nums_up = 100;  // 计算阈值样本增量
 }  // namespace
 namespace {
-const int Width = 640;
+const int Width = 848;
 const int Height = 480;
 const int fps = 90;  // 帧数最大能支持90
 
