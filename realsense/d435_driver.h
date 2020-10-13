@@ -121,5 +121,6 @@ class D435 {
   rs2::stream_profile dprofile;  // 用来存放深度相机参数
   rs2_intrinsics depth_intrin;
   float ration_angle;
+  cv::Rect ROI;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

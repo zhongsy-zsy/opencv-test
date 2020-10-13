@@ -21,6 +21,7 @@ void D435::Init() {
   dev_list = ctx.query_devices();
   if (dev_list.size() == 0) {
     // ROS_ERROR("D435 not detected.");
+    return;
   }
   dev = dev_list.front();
   rs2::pipeline pipe1(ctx);
@@ -1706,7 +1707,7 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    cv::Rect ROI(200, 0, 300, 480);
+    ROI = cv::Rect(200, 0, 300, 480);
     cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
     cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
@@ -1736,7 +1737,7 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
       for (int k = 0; k < data.size(); k++) {
         if (static_cast<double>(mean_depth.at<double>(i, j)) -
                 static_cast<double>(data[k].at<ushort>(i, j)) >
-            thread_data[i] * up_to_nums[h]) {
+            thread_data[i+ROI.y] * up_to_nums[h]) {
           count++;
         }
       }

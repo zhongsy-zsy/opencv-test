@@ -63,6 +63,9 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "any": "cpp",
+        "optional": "cpp",
+        "string_view": "cpp"
     }
 }
