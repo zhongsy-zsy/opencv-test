@@ -233,40 +233,39 @@ void D435::calibration_angle() {
   } else {
     cv::waitKey(10);
     cv::Vec3f tem;
-    cv::Vec3f res;
-
-    while (1) {
-      get_depth();
-      tem[0] = Width / 2;
-      tem[1] = Height / 2;
-      tem[2] = static_cast<float>(
-          depth_data.at<ushort>(cv::Point(Width / 2, Height / 2)));
-      res[0] = 400;
-      res[1] = 300;
-      res[2] = static_cast<float>(depth_data.at<ushort>(cv::Point(400, 300)));
-      if (res[2] != 0 && res[2] < 4000 && tem[2] != 0 && tem[2] < 4000) {
-        break;
+    cv::Vec3f result;
+    bool flag = true;
+    // LOG_INFO("start calibration angle");
+    while (flag) {
+      while (1) {
+        get_depth();
+        tem[0] = Width / 2;
+        tem[1] = Height / 2;
+        tem[2] = static_cast<float>(
+            depth_data.at<ushort>(cv::Point(Width / 2, Height / 2)));
+        result[0] = 400;
+        result[1] = 300;
+        result[2] =
+            static_cast<float>(depth_data.at<ushort>(cv::Point(400, 300)));
+        if (result[2] != 0 && result[2] < 4000 && tem[2] != 0 &&
+            tem[2] < 4000) {
+          break;
+        }
       }
-    }
-    std::cout << depth_data.at<ushort>(cv::Point(400, 300)) << std::endl;
-    std::cout << RED << "res tmp: " << res[2] << " " << tem[2] << RESET
-              << std::endl;
 
-    for (float i = 0.0; i < 70.0; i += 0.1) {
-      std::cout << "angle" << i << std::endl;
-      ration_angle = (i / 180.0) * pi;
-      cv::Vec3f check1 = pixel_to_world(tem);
-      cv::Vec3f check2 = pixel_to_world(res);
-      std::cout << std::fabs(check1[2] - check2[2]) << std::endl;
-      if (std::fabs(check1[2] - check2[2]) < 1) {
-        calibration_data.open("angle_data.csv",
-                              std::ios::out | std::ios::trunc);
-
-        std::cout << RED << "angle is :" << i << RESET << std::endl;
-        calibration_data << i << "," << std::endl;
-        calibration_data.close();
-
-        break;
+      for (float i = 0.0; i < 70.0; i += 0.1) {
+        ration_angle = (i / 180.0) * pi;
+        cv::Vec3f check1 = pixel_to_world(tem);
+        cv::Vec3f check2 = pixel_to_world(result);
+        if (std::fabs(check1[2] - check2[2]) < 1) {
+          // LOG_INFO("finish calibration angle");
+          calibration_data.open("angle_data.csv",
+                                std::ios::out | std::ios::trunc);
+          calibration_data << i << "," << std::endl;
+          calibration_data.close();
+          flag = false;
+          break;
+        }
       }
     }
   }
@@ -1175,7 +1174,8 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   find_obstacle(data, 170, 255, are_threshold);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for find_obstacle(): " << duration << "second"
+  //   std::cout << "consume time for find_obstacle(): " << duration <<
+  //   "second"
   // << std::endl;
   start = clock();
   calculate_mindistance(450, 200);
@@ -1471,7 +1471,9 @@ void D435::get_mean_depth() {
       cv::Mat_<double> result = cv::Mat_<double>::zeros(Height, Width);
       std::cout << "times" << flag << std::endl;
       cv::waitKey(50);
-
+      cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
+                     below_edge - top_edge);
+      /* 开始取图片 */
       for (int k = 0; k < samples_nums_up; k++) {
         get_depth();
         /* 进行补全 ,去除零点*/
@@ -1492,7 +1494,7 @@ void D435::get_mean_depth() {
                 }
                 k++;
                 count++;
-                if (count > 500) {
+                if (count > 900) {
                   break;
                 }
               }
@@ -1519,8 +1521,6 @@ void D435::get_mean_depth() {
         cv::imwrite(depth_name, depth_data);
 #endif
 
-        cv::Rect rect1(left_edge, top_edge, right_edge - left_edge,
-                       below_edge - top_edge);
         cv::Mat raw_data_edge = depth_data(rect1);
         cv::Mat edge_data_display = raw_data_edge;
         edge_data_display.convertTo(edge_data_display, CV_8UC1,
@@ -1545,6 +1545,7 @@ void D435::get_mean_depth() {
 
         cv::waitKey(15);
       }
+      /* 结束取图 */
 
       for (int i = 0; i < result.rows; i++) {
         for (int j = 0; j < result.cols; j++) {
@@ -1557,26 +1558,27 @@ void D435::get_mean_depth() {
         }
       }
 
-      for (int i = 0; i < result.rows; i++) {
-        for (int j = 0; j < result.cols; j++) {
-          if (result.at<double>(i, j) == 0) {
-            int k = j + 1;
-            int flag = 1;
-            int count = 0;
-            while (flag) {
-              if (result.at<double>(i, k % Width) != 0) {
-                flag = 0;
-                result.at<double>(i, j) = result.at<double>(i, k % Width);
-              }
-              k++;
-              count++;
-              if (count > 500) {
-                break;
-              }
-            }
-          }
-        }
-      }
+      //   for (int i = 0; i < result.rows; i++) {
+      //     for (int j = 0; j < result.cols; j++) {
+      //       if (result.at<double>(i, j) == 0) {
+      //         int k = j + 1;
+      //         int flag = 1;
+      //         int count = 0;
+      //         while (flag) {
+      //           if (result.at<double>(i, k % Width) != 0) {
+      //             flag = 0;
+      //             result.at<double>(i, j) = result.at<double>(i, k %
+      //             Width);
+      //           }
+      //           k++;
+      //           count++;
+      //           if (count > 500) {
+      //             break;
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }
 
       /*
           保存每一次的均值
@@ -1618,9 +1620,9 @@ void D435::get_mean_depth() {
       cv::imwrite("mean_depth.png", conv);
 #endif
 
-      cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
-                    below_edge - top_edge);
-      cv::Mat edge_data = tmp_result(rect);  // 感兴趣的均值
+      //   cv::Rect rect(left_edge, top_edge, right_edge - left_edge,
+      //                 below_edge - top_edge);
+      cv::Mat edge_data = tmp_result(rect1);  // 感兴趣的均值
 
       if (threshold_data.empty()) {
         threshold_data =
@@ -1830,7 +1832,8 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   //   data.convertTo(data, CV_8UC1, 1);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for thresholding(): " << duration << "second"
+  //   std::cout << "consume time for thresholding(): " << duration <<
+  //   "second"
   // << std::endl;
   return result.clone();
 }
