@@ -1474,6 +1474,43 @@ void D435::get_mean_depth() {
 
       for (int k = 0; k < samples_nums_up; k++) {
         get_depth();
+        /* 进行补全 ,去除零点*/
+        for (int i = 0; i < depth_data.rows; i++) {
+          for (int j = 0; j < depth_data.cols; j++) {
+            if (depth_data.at<ushort>(i, j) > 7000) {
+              depth_data.at<ushort>(i, j) = 7000;
+              continue;
+            }
+            if (depth_data.at<double>(i, j) == 0) {
+              int k = j + 1;
+              int count = 0;
+              while (1) {
+                if (depth_data.at<double>(i, k % Width) != 0) {
+                  depth_data.at<double>(i, j) =
+                      depth_data.at<double>(i, k % Width);
+                  break;
+                }
+                k++;
+                count++;
+                if (count > 500) {
+                  break;
+                }
+              }
+            }
+          }
+        }
+        // std::cout << depth_data << std::endl;
+
+        /* 修复反光 */
+        for (int i = 0; i < depth_data.rows; i++) {
+          for (int j = 1; j < depth_data.cols - 1; j++) {
+            if (depth_data.at<ushort>(i, j + 1) - depth_data.at<ushort>(i, j) >
+                500) {
+              depth_data.at<ushort>(i, j + 1) = depth_data.at<ushort>(i, j);
+            }
+          }
+        }
+        // std::cout << depth_data << std::endl;
 
 #ifdef DEBUG
         std::string depth_name("calibration_data");
@@ -1496,9 +1533,7 @@ void D435::get_mean_depth() {
             if (depth_data.at<ushort>(i, j) == 0) {
               continue;
             }
-            if (depth_data.at<ushort>(i, j) > 7000) {
-                count.at<double>(i, j) += 1;
-                result.at<double>(i, j) += 7000;
+            if (depth_data.at<ushort>(i, j) > 10000) {
               continue;
             } else {
               count.at<double>(i, j) += 1;
@@ -1507,6 +1542,7 @@ void D435::get_mean_depth() {
             }
           }
         }
+
         cv::waitKey(15);
       }
 
@@ -1526,12 +1562,17 @@ void D435::get_mean_depth() {
           if (result.at<double>(i, j) == 0) {
             int k = j + 1;
             int flag = 1;
+            int count = 0;
             while (flag) {
               if (result.at<double>(i, k % Width) != 0) {
                 flag = 0;
                 result.at<double>(i, j) = result.at<double>(i, k % Width);
               }
               k++;
+              count++;
+              if (count > 500) {
+                break;
+              }
             }
           }
         }

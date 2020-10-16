@@ -148,7 +148,7 @@ std::vector<double> calculate_max_threshold(
         }
         double diff_tmp = static_cast<double>(mean_depth.at<ushort>(i, j)) -
                           static_cast<double>(raw_data[k].at<ushort>(i, j));
-        if (diff_tmp < 0 || std::fabs(diff_tmp - max_diff) > 700) {
+        if (diff_tmp < 0) {
           continue;
           //   std::max(max_diff, std::fabs(diff_tmp));
         } else {
