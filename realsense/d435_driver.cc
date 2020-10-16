@@ -1483,13 +1483,13 @@ void D435::get_mean_depth() {
               depth_data.at<ushort>(i, j) = 7000;
               continue;
             }
-            if (depth_data.at<double>(i, j) == 0) {
+            if (depth_data.at<ushort>(i, j) == 0) {
               int k = j + 1;
               int count = 0;
               while (1) {
-                if (depth_data.at<double>(i, k % Width) != 0) {
-                  depth_data.at<double>(i, j) =
-                      depth_data.at<double>(i, k % Width);
+                if (depth_data.at<ushort>(i, k % Width) != 0) {
+                  depth_data.at<ushort>(i, j) =
+                      depth_data.at<ushort>(i, k % Width);
                   break;
                 }
                 k++;
