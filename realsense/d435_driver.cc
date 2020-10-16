@@ -1483,13 +1483,13 @@ void D435::get_mean_depth() {
               depth_data.at<ushort>(i, j) = 7000;
               continue;
             }
-            if (depth_data.at<double>(i, j) == 0) {
+            if (depth_data.at<ushort>(i, j) == 0) {
               int k = j + 1;
               int count = 0;
               while (1) {
-                if (depth_data.at<double>(i, k % Width) != 0) {
-                  depth_data.at<double>(i, j) =
-                      depth_data.at<double>(i, k % Width);
+                if (depth_data.at<ushort>(i, k % Width) != 0) {
+                  depth_data.at<ushort>(i, j) =
+                      depth_data.at<ushort>(i, k % Width);
                   break;
                 }
                 k++;
@@ -1498,17 +1498,21 @@ void D435::get_mean_depth() {
                   break;
                 }
               }
+              //   std::cout << "1" << std::endl;
             }
           }
         }
         // std::cout << depth_data << std::endl;
-
+        // std::cout << "1" << std::endl;
         /* 修复反光 */
         for (int i = 0; i < depth_data.rows; i++) {
-          for (int j = 1; j < depth_data.cols - 1; j++) {
-            if (depth_data.at<ushort>(i, j + 1) - depth_data.at<ushort>(i, j) >
-                500) {
-              depth_data.at<ushort>(i, j + 1) = depth_data.at<ushort>(i, j);
+          for (int j = 0; j < depth_data.cols; j++) {
+            ushort tmp = 10000;
+            for (int k = 1; k < 201; k++) {
+              tmp = std::min(tmp, depth_data.at<ushort>(i, k * 4));
+            }
+            if (depth_data.at<ushort>(i, j) - tmp > 500) {
+              depth_data.at<ushort>(i, j) = tmp;
             }
           }
         }
