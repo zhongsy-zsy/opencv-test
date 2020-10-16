@@ -506,7 +506,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
     // }
     std::vector<double> res;
     if (!ve_rect.empty()) {
-      cv::Rect ROI(200, 0, 300, 480);
+      cv::Rect ROI(160, 0, 520, 480);
       cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
         cv::Mat imageROI = ROI_depth(ve_rect[i]);
@@ -1490,11 +1490,15 @@ void D435::get_mean_depth() {
                                     255.0 / 15000.0);
         cv::imshow("raw_rect_data", edge_data_display);
         cv::waitKey(10);
-        raw_datas.push_back(raw_data_edge);  //  存放感兴趣区域
+        raw_datas.push_back(raw_data_edge.clone());  //  存放感兴趣区域
         for (int i = 0; i < depth_data.rows; i++) {
           for (int j = 0; j < depth_data.cols; j++) {
-            if (depth_data.at<ushort>(i, j) == 0 ||
-                depth_data.at<ushort>(i, j) > 15000) {
+            if (depth_data.at<ushort>(i, j) == 0) {
+              continue;
+            }
+            if (depth_data.at<ushort>(i, j) > 7000) {
+                count.at<double>(i, j) += 1;
+                result.at<double>(i, j) += 7000;
               continue;
             } else {
               count.at<double>(i, j) += 1;
@@ -1514,6 +1518,22 @@ void D435::get_mean_depth() {
           }
           result.at<double>(i, j) = static_cast<double>(
               result.at<double>(i, j) / count.at<double>(i, j));
+        }
+      }
+
+      for (int i = 0; i < result.rows; i++) {
+        for (int j = 0; j < result.cols; j++) {
+          if (result.at<double>(i, j) == 0) {
+            int k = j + 1;
+            int flag = 1;
+            while (flag) {
+              if (result.at<double>(i, k % Width) != 0) {
+                flag = 0;
+                result.at<double>(i, j) = result.at<double>(i, k % Width);
+              }
+              k++;
+            }
+          }
         }
       }
 
@@ -1707,7 +1727,7 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    ROI = cv::Rect(200, 0, 300, 480);
+    ROI = cv::Rect(160, 0, 520, 480);
     cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
     cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
@@ -1735,9 +1755,12 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
     for (int j = 0; j < result.cols; j++) {
       int count = 0;
       for (int k = 0; k < data.size(); k++) {
+        if (data[k].at<ushort>(i, j) == 0) {
+          break;
+        }
         if (static_cast<double>(mean_depth.at<double>(i, j)) -
                 static_cast<double>(data[k].at<ushort>(i, j)) >
-            thread_data[i+ROI.y] * up_to_nums[h]) {
+            thread_data[i + ROI.y] * up_to_nums[h]) {
           count++;
         }
       }
@@ -1768,7 +1791,7 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   //   std::cout << "consume time for thresholding(): " << duration << "second"
   // << std::endl;
-  return result;
+  return result.clone();
 }
 
 void D435::save_depth_image() {
