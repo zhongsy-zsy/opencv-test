@@ -1511,7 +1511,7 @@ void D435::get_mean_depth() {
             for (int k = 1; k < 201; k++) {
               tmp = std::min(tmp, depth_data.at<ushort>(i, k * 4));
             }
-            if (depth_data.at<ushort>(i, j) - tmp > 500) {
+            if (depth_data.at<ushort>(i, j) - tmp > 600) {
               depth_data.at<ushort>(i, j) = tmp;
             }
           }
@@ -1675,6 +1675,12 @@ void D435::get_mean_depth() {
     }
     cv::imwrite("calibration.jpg", out);
 #endif
+    /* 调整阈值 */
+    for (int k = 479; k > 250; k--) {
+      if (threshold_data[k - 1] - threshold_data[k] > 50) {
+        threshold_data[k - 1] = threshold_data[k];
+      }
+    }
     /*
       save calibration data
    */
