@@ -268,7 +268,7 @@ void D435::calibration_angle() {
         }
       }
     }
-  }
+  } 
 }
 
 std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
@@ -280,8 +280,8 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
   for (int i = 0; i < 3; i++) {
     frames = pipe.wait_for_frames();
     rs2::depth_frame depth_frame = frames.get_depth_frame();
-    rs2::frame filtered_frame = depth_frame;
-    filtered_frame = colorizered.process(filtered_frame);
+    // rs2::frame filtered_frame = depth_frame;
+    // filtered_frame = colorizered.process(filtered_frame);
     // // 应用抽取滤波器（下采样）
     // filtered_frame = decimation_filter.process(filtered_frame);
 
@@ -299,50 +299,50 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
     // filtered_frame = depth_transform.process(filtered_frame);
     cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
                   (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
-    cv::Mat display(cv::Size(Width, Height), CV_8UC3,
-                    (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
+    // cv::Mat display(cv::Size(Width, Height), CV_8UC3,
+    //                 (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
     depth.copyTo(depth_data);
-    cv::Mat color_diaplay = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
-    cv::namedWindow("diaplay_color", CV_WINDOW_AUTOSIZE);
-    cv::circle(color_diaplay, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
-    cv::circle(display, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
-    cv::circle(display, cv::Point(Width / 2, Height / 2), 3,
-               cv::Scalar(0, 0, 255), 3);
-    cv::Vec3f test;
-    test[2] = depth.at<ushort>(cv::Point(400, 300));
-    test[0] = 400;
-    test[1] = 300;
-    test = pixel_to_world(test);
-    cv::Vec3f test_raw;
-    test_raw[2] = depth.at<ushort>(cv::Point(Width / 2, Height / 2));
-    test_raw[0] = Width / 2;
-    test_raw[1] = Height / 2;
-    test_raw = pixel_to_world(test_raw);
-    cv::putText(display,
-                "X:" + std::to_string(test[0]) + " Y:" +
-                    std::to_string(test[1]) + " Z:" + std::to_string(test[2]),
-                cv::Point(100, 200), 1, 1, cv::Scalar(0, 0, 255));
-    cv::putText(display,
-                "X_raw:" + std::to_string(test_raw[0]) +
-                    " Y_raw:" + std::to_string(test_raw[1]) +
-                    " Z_raw:" + std::to_string(test_raw[2]),
-                cv::Point(100, 250), 1, 1, cv::Scalar(0, 0, 255));
-    cv::putText(
-        display,
-        "X_raw_r:" + std::to_string(test_raw[0]) +
-            " Y_raw_r:" + std::to_string(test_raw[1]) + " Z_raw_r:" +
-            std::to_string(depth.at<ushort>(cv::Point(Width / 2, Height / 2))),
-        cv::Point(100, 280), 1, 1, cv::Scalar(0, 0, 255));
-    cv::putText(display,
-                "X_raw_l:" + std::to_string(test_raw[0]) +
-                    " Y_raw_l:" + std::to_string(test_raw[1]) + " Z_raw_l:" +
-                    std::to_string(depth.at<ushort>(cv::Point(400, 300))),
-                cv::Point(100, 300), 1, 1, cv::Scalar(0, 0, 255));
-    cv::imshow("diaplay_color", color_diaplay);
-    cv::waitKey(1);
-    cv::imshow("diaplay", display);
-    cv::waitKey(1);
-    cv::imshow("roi_depth", depth(ROI));
+    // cv::Mat color_diaplay = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
+    // cv::namedWindow("diaplay_color", CV_WINDOW_AUTOSIZE);
+    // cv::circle(color_diaplay, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
+    // cv::circle(display, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
+    // cv::circle(display, cv::Point(Width / 2, Height / 2), 3,
+    //            cv::Scalar(0, 0, 255), 3);
+    // cv::Vec3f test;
+    // test[2] = depth.at<ushort>(cv::Point(400, 300));
+    // test[0] = 400;
+    // test[1] = 300;
+    // test = pixel_to_world(test);
+    // cv::Vec3f test_raw;
+    // test_raw[2] = depth.at<ushort>(cv::Point(Width / 2, Height / 2));
+    // test_raw[0] = Width / 2;
+    // test_raw[1] = Height / 2;
+    // test_raw = pixel_to_world(test_raw);
+    // cv::putText(display,
+    //             "X:" + std::to_string(test[0]) + " Y:" +
+    //                 std::to_string(test[1]) + " Z:" + std::to_string(test[2]),
+    //             cv::Point(100, 200), 1, 1, cv::Scalar(0, 0, 255));
+    // cv::putText(display,
+    //             "X_raw:" + std::to_string(test_raw[0]) +
+    //                 " Y_raw:" + std::to_string(test_raw[1]) +
+    //                 " Z_raw:" + std::to_string(test_raw[2]),
+    //             cv::Point(100, 250), 1, 1, cv::Scalar(0, 0, 255));
+    // cv::putText(
+    //     display,
+    //     "X_raw_r:" + std::to_string(test_raw[0]) +
+    //         " Y_raw_r:" + std::to_string(test_raw[1]) + " Z_raw_r:" +
+    //         std::to_string(depth.at<ushort>(cv::Point(Width / 2, Height / 2))),
+    //     cv::Point(100, 280), 1, 1, cv::Scalar(0, 0, 255));
+    // cv::putText(display,
+    //             "X_raw_l:" + std::to_string(test_raw[0]) +
+    //                 " Y_raw_l:" + std::to_string(test_raw[1]) + " Z_raw_l:" +
+    //                 std::to_string(depth.at<ushort>(cv::Point(400, 300))),
+    //             cv::Point(100, 300), 1, 1, cv::Scalar(0, 0, 255));
+    // cv::imshow("diaplay_color", color_diaplay);
+    // cv::waitKey(1);
+    // cv::imshow("diaplay", display);
+    // cv::waitKey(1);
+    // cv::imshow("roi_depth", depth(ROI));
     res.emplace_back(depth(ROI).clone());
   }
 
@@ -415,14 +415,14 @@ void D435::find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
   //   dep = depth.clone();
   //   cv::Mat threshold_output;
   std::vector<std::vector<cv::Point>> contours;
-  cv::Mat drawing = cv::Mat::zeros(Height, Width, CV_8UC3);  // 用于画图显示
+//   cv::Mat drawing = cv::Mat::zeros(Height, Width, CV_8UC3);  // 用于画图显示
 
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
   // 阈值分割
-  for (int i = 0; i < depth.size(); i++) {
-    cv::threshold(depth[i], depth[i], thresh, 255, cv::THRESH_BINARY_INV);
-  }
+//   for (int i = 0; i < depth.size(); i++) {
+//     cv::threshold(depth[i], depth[i], thresh, 255, cv::THRESH_BINARY_INV);
+//   }
   //   cv::imshow("erzhihua", threshold_output);
   //   cv::waitKey(1);
   // mask_depth(src, threshold_output);
@@ -446,16 +446,16 @@ void D435::find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
               306000)  // 面积大于或小于area的凸包，可忽略
         continue;
       result.push_back(hull[i]);
-      cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
-                                    rng.uniform(0, 255));
-      drawContours(drawing, contours, i, color, 1, 8, std::vector<cv::Vec4i>(),
-                   0, cv::Point());
-      drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(), 0,
-                   cv::Point());
+    //   cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
+    //                                 rng.uniform(0, 255));
+    //   drawContours(drawing, contours, i, color, 1, 8, std::vector<cv::Vec4i>(),
+    //                0, cv::Point());
+    //   drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(), 0,
+    //                cv::Point());
     }
     contours.clear();
   }
-  cv::imshow("contours", drawing);
+//   cv::imshow("contours", drawing);
 }
 
 void D435::quit_black_block(cv::Mat &image) {
@@ -473,7 +473,7 @@ void D435::quit_black_block(cv::Mat &image) {
 
 void D435::calculate_mindistance(float threshold_x, float threshold_y) {
   std::vector<cv::Rect> ve_rect;
-  cv::Mat drawing = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
+//   cv::Mat drawing = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
 
   if (result.empty()) {
     // 设置避障等级为0
@@ -511,20 +511,20 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         cv::Mat imageROI = ROI_depth(ve_rect[i]);
         int x_delta = ve_rect[i].x;
         int y_delta = ve_rect[i].y;
-        std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols << " "
-                  << ROI.x << " " << ROI.y << std::endl;
+        // std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols << " "
+        //           << ROI.x << " " << ROI.y << std::endl;
         // cv::imshow("ROI", imageROI);
         // cv::waitKey(1);
         // 过滤零点
-        cv::Vec3f test;
-        test[0] = 120 + ROI.x;
-        test[1] = 240 + ROI.y;
-        test[2] = ROI_depth.at<ushort>(cv::Point(120, 240));
-        test = pixel_to_world(test);
-        std::cout << "test[0]: " << test[0] << "test1: " << test[1] << "test[2]"
-                  << test[2] << std::endl;
+        // cv::Vec3f test;
+        // test[0] = 120 + ROI.x;
+        // test[1] = 240 + ROI.y;
+        // test[2] = ROI_depth.at<ushort>(cv::Point(120, 240));
+        // test = pixel_to_world(test);
+        // std::cout << "test[0]: " << test[0] << "test1: " << test[1] << "test[2]"
+        //           << test[2] << std::endl;
 
-        cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
+        // cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
             float Z = static_cast<float>(imageROI.at<ushort>(i, j));
@@ -548,14 +548,14 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
           }
         }
         // std::cout << imageROI << std::endl;
-        cv::imshow("rectangle", drawing);
-        cv::waitKey(1);
+        // cv::imshow("rectangle", drawing);
+        // cv::waitKey(1);
         double min_dis;
         cv::Point min_point;
         std::vector<int> tmp;
 
         // for(int i=0;i<3;i++)
-        std::cout << "imageROI" << imageROI << std::endl;
+        // std::cout << "imageROI" << imageROI << std::endl;
         while (tmp.size() <= 3) {
           cv::minMaxLoc(imageROI, &min_dis, NULL, &min_point, NULL);
           //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
@@ -1181,8 +1181,8 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   calculate_mindistance(450, 200);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for calculate_minstance(): " << duration
-  // << "second" << std::endl;
+    std::cout << "consume time for calculate_minstance(): " << duration
+  << "second" << std::endl;
 }
 
 void D435::start_calibration() {
@@ -1358,24 +1358,24 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   start = clock();
   std::vector<cv::Mat> three_map;
   std::vector<cv::Mat> deal_result;
-  cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
+//   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
 
   three_map = get_depth2calculate(ROI);
 
-  for (int i = 0; i < three_map[0].rows; i++) {
-    for (int j = 0; j < three_map[0].cols; j++) {
-      if (static_cast<double>(mean_depth_average.at<double>(i, j)) -
-              static_cast<double>(three_map[0].at<ushort>(i, j)) >
-          threshold_data[i]) {
-        raw_deal_result.at<char>(i, j) = 0;
-      } else {
-        raw_deal_result.at<char>(i, j) = 255;
-      }
-    }
-  }
+//   for (int i = 0; i < three_map[0].rows; i++) {
+//     for (int j = 0; j < three_map[0].cols; j++) {
+//       if (static_cast<double>(mean_depth_average.at<double>(i, j)) -
+//               static_cast<double>(three_map[0].at<ushort>(i, j)) >
+//           threshold_data[i]) {
+//         raw_deal_result.at<char>(i, j) = 0;
+//       } else {
+//         raw_deal_result.at<char>(i, j) = 255;
+//       }
+//     }
+//   }
 
-  cv::imshow("raw ", raw_deal_result);
-  cv::waitKey(1);
+//   cv::imshow("raw ", raw_deal_result);
+//   cv::waitKey(1);
 
   for (int k = 0; k < up_num; k++) {
     cv::Mat result = thresholding(three_map, mean_depth_average(ROI),
@@ -1383,29 +1383,29 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
     deal_result.emplace_back(result.clone());
   }
 
-  cv::imshow("after 0", deal_result[0]);
-  cv::waitKey(1);
-  cv::imshow("after 1", deal_result[1]);
-  cv::waitKey(1);
+//   cv::imshow("after 0", deal_result[0]);
+//   cv::waitKey(1);
+//   cv::imshow("after 1", deal_result[1]);
+//   cv::waitKey(1);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-  //   std::cout << "consume time for Get3depth(): " << duration << "second"
-  // << std::endl;
+    std::cout << "consume time for Get3depth(): " << duration << "second"
+  << std::endl;
   start = clock();
   for (int k = 0; k < up_num; k++) {
     cv::Mat element = cv::getStructuringElement(
         cv::MORPH_RECT, cv::Size(3, 3));  // 闭操作核的大小
-    cv::morphologyEx(deal_result[k], deal_result[k], cv::MORPH_CLOSE,
+    cv::morphologyEx(deal_result[k], deal_result[k], cv::MORPH_OPEN,
                      element);  // 闭操作
   }
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   //   std::cout << "consume time for close(): " << duration << "second"
   // << std::endl;
-  cv::imshow("close 0", deal_result[0]);
-  cv::waitKey(1);
-  cv::imshow("close 1", deal_result[1]);
-  cv::waitKey(1);
+//   cv::imshow("close 0", deal_result[0]);
+//   cv::waitKey(1);
+//   cv::imshow("close 1", deal_result[1]);
+//   cv::waitKey(1);
   //   cv::Mat element1 = cv::getStructuringElement(
   //       cv::MORPH_RECT, cv::Size(7, 7));  // 膨胀操作核的大小
   //   cv::imshow("close", data);
@@ -1771,16 +1771,16 @@ void D435::get_mean_depth() {
     }
     start = clock();
     ROI = cv::Rect(160, 0, 520, 480);
-    cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
+    // cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
-    cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
-    cv::imshow("display_rect", display_rect1);
+    // cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
+    // cv::imshow("display_rect", display_rect1);
     handle_depth(
         Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums, ROI));
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-    // std::cout << "consume time for handle: " << duration << "second"
-    //   << std::endl;
+    std::cout << "consume time for handle: " << duration << "second"
+      << std::endl;
   }
 }
 
@@ -1808,9 +1808,9 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
         }
       }
       if (count > nums) {
-        result.at<uchar>(i, j) = 0;
-      } else {
         result.at<uchar>(i, j) = 255;
+      } else {
+        result.at<uchar>(i, j) = 0;
       }
     }
   }
