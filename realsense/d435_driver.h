@@ -59,7 +59,8 @@ class D435 {
   void GetData(void *data);
   std::vector<cv::Mat> Get3_depth(cv::Mat mean_depth_average,
                                   const std::vector<double> &threshold_data,
-                                  int up_num, int nums, cv::Rect ROI);
+                                  int up_num, int nums, cv::Rect ROI_UP,
+                                  cv::Rect ROI_DOWN);
   std::vector<cv::Mat> get_depth2calculate(cv::Rect ROI);
   void separate_byte();
   void matching();
@@ -71,8 +72,9 @@ class D435 {
   cv::Mat show_depth(int row_start, int row_end, int col_start, int col_end);
   void start_calibration();
   void calculate_poly(cv::Mat mean_depth);
-  cv::Mat thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
-                       const std::vector<double> &thread_data, int h, int nums);
+  void thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
+                    const std::vector<double> &thread_data, int h, int nums,
+                    cv::Rect ROI, cv::Mat result);
   void calibration_angle();
 
  private:
@@ -84,9 +86,12 @@ class D435 {
   void handle_depth(std::vector<cv::Mat> data);
   void quit_black_block(cv::Mat &image);
   void mask_depth(cv::Mat &image, int throld = 3000);
+  void find_obstacle(std::vector<std::vector<cv::Mat>> depth, int thresh,
+                     int max_thresh, std::vector<int> areas);
   void find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
                      std::vector<int> areas);
   void calculate_mindistance(float threshold_x, float threshold_y);
+
   void region_thread(cv::Mat &data);
   void caculate_thread4();
   cv::Vec3f pixel_to_world(cv::Vec3f point);
@@ -121,6 +126,7 @@ class D435 {
   rs2::stream_profile dprofile;  // 用来存放深度相机参数
   rs2_intrinsics depth_intrin;
   float ration_angle;
-  cv::Rect ROI;
+  cv::Rect ROI_UP;
+  cv::Rect ROI_DOWN;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

@@ -82,6 +82,7 @@ void D435::Init() {
   std::cout << "distortion model: " << depth_intrin.model
             << std::endl;  ///畸变模型
   std::cout << RESET;
+
   run_executor_ =
       std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
 }
@@ -505,45 +506,46 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
     // }
     std::vector<double> res;
     if (!ve_rect.empty()) {
-      cv::Rect ROI(160, 0, 520, 480);
-      cv::Mat ROI_depth = depth_data(ROI);
+      //   cv::Rect ROI(160, 0, 520, 480);
+      //   cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
-        cv::Mat imageROI = ROI_depth(ve_rect[i]);
+        //     cv::Mat imageROI = ROI_depth(ve_rect[i]);
         int x_delta = ve_rect[i].x;
         int y_delta = ve_rect[i].y;
-        std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols << " "
-                  << ROI.x << " " << ROI.y << std::endl;
-        // cv::imshow("ROI", imageROI);
-        // cv::waitKey(1);
-        // 过滤零点
-        cv::Vec3f test;
-        test[0] = 120 + ROI.x;
-        test[1] = 240 + ROI.y;
-        test[2] = ROI_depth.at<ushort>(cv::Point(120, 240));
-        test = pixel_to_world(test);
-        std::cout << "test[0]: " << test[0] << "test1: " << test[1] << "test[2]"
-                  << test[2] << std::endl;
+        //     std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols
+        //     << " "
+        //               << ROI.x << " " << ROI.y << std::endl;
+        //     // cv::imshow("ROI", imageROI);
+        //     // cv::waitKey(1);
+        //     // 过滤零点
+        //     cv::Vec3f test;
+        //     test[0] = 120 + ROI.x;
+        //     test[1] = 240 + ROI.y;
+        //     test[2] = ROI_depth.at<ushort>(cv::Point(120, 240));
+        //     test = pixel_to_world(test);
+        //     std::cout << "test[0]: " << test[0] << "test1: " << test[1] <<
+        //     "test[2]"
+        //               << test[2] << std::endl;
 
         cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
-        for (int i = 0; i < imageROI.rows; i++) {
-          for (int j = 0; j < imageROI.cols; j++) {
-            float Z = static_cast<float>(imageROI.at<ushort>(i, j));
+        for (int i = 0; i < depth_data.rows; i++) {
+          for (int j = 0; j < depth_data.cols; j++) {
+            float Z = static_cast<float>(depth_data.at<ushort>(i, j));
             float X =
-                (static_cast<float>((j + ROI.x + x_delta) * Z) -
-                 depth_intrin.ppx * Z) /
+                (static_cast<float>((j + x_delta) * Z) - depth_intrin.ppx * Z) /
                 depth_intrin
                     .fx;  // 这是考虑的没有畸变的情况，如果有畸变那么就是另外的情况了
-            float Y = (static_cast<float>((i + ROI.y + y_delta) * Z) -
-                       depth_intrin.ppy * Z) /
-                      depth_intrin.fy;
+            float Y =
+                (static_cast<float>((i + y_delta) * Z) - depth_intrin.ppy * Z) /
+                depth_intrin.fy;
             // 进行相机坐标到车体坐标的转换
             Z = -std::sin(ration_angle) * Y + std::cos(ration_angle) * Z;
             Y = std::cos(ration_angle) * Y + std::sin(ration_angle) * Z;
-            if (imageROI.at<ushort>(i, j) == 0 ||
+            if (depth_data.at<ushort>(i, j) == 0 ||
                 std::fabs(X) > threshold_x) {  // 这边可以再加一个Y的阈值
-              imageROI.at<ushort>(i, j) = 4000;
+              depth_data.at<ushort>(i, j) = 4000;
             } else {
-              imageROI.at<ushort>(i, j) = static_cast<ushort>(Z);
+              depth_data.at<ushort>(i, j) = static_cast<ushort>(Z);
             }
           }
         }
@@ -555,18 +557,18 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         std::vector<int> tmp;
 
         // for(int i=0;i<3;i++)
-        std::cout << "imageROI" << imageROI << std::endl;
+        //   std::cout << "imageROI" << imageROI << std::endl;
         while (tmp.size() <= 3) {
-          cv::minMaxLoc(imageROI, &min_dis, NULL, &min_point, NULL);
+          cv::minMaxLoc(depth_data, &min_dis, NULL, &min_point, NULL);
           //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
           // 优化获取的是前面3个最小点的平均值
           if (tmp.empty()) {
             tmp.emplace_back(min_dis);
-            imageROI.at<ushort>(min_point) = 4000;
+            depth_data.at<ushort>(min_point) = 4000;
           } else {
             if (std::fabs(min_dis - tmp.back()) < 40) {
               tmp.emplace_back(min_dis);
-              imageROI.at<ushort>(min_point) = 4000;
+              depth_data.at<ushort>(min_point) = 4000;
             } else {
               // 是噪声点
               tmp.pop_back();
@@ -1178,6 +1180,7 @@ void D435::handle_depth(std::vector<cv::Mat> data) {
   //   "second"
   // << std::endl;
   start = clock();
+
   calculate_mindistance(450, 200);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
@@ -1352,35 +1355,45 @@ std::vector<double> D435::polyfit(std::vector<cv::Point> &in_point, int n) {
 */
 std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
                                       const std::vector<double> &threshold_data,
-                                      int up_num, int nums, cv::Rect ROI) {
+                                      int up_num, int nums, cv::Rect ROI_UP,
+                                      cv::Rect ROI_DOWN) {
   clock_t start, stop;
   double duration;
   start = clock();
-  std::vector<cv::Mat> three_map;
+  std::vector<cv::Mat> three_map_up;
+  std::vector<cv::Mat> three_map_down;
+
   std::vector<cv::Mat> deal_result;
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
 
-  three_map = get_depth2calculate(ROI);
+  three_map_up = get_depth2calculate(ROI_UP);
+  three_map_down = get_depth2calculate(ROI_DOWN);
 
-  for (int i = 0; i < three_map[0].rows; i++) {
-    for (int j = 0; j < three_map[0].cols; j++) {
-      if (static_cast<double>(mean_depth_average.at<double>(i, j)) -
-              static_cast<double>(three_map[0].at<ushort>(i, j)) >
-          threshold_data[i]) {
-        raw_deal_result.at<char>(i, j) = 0;
-      } else {
-        raw_deal_result.at<char>(i, j) = 255;
-      }
-    }
-  }
+  //   for (int i = 0; i < three_map[0].rows; i++) {
+  //     for (int j = 0; j < three_map[0].cols; j++) {
+  //       if (static_cast<double>(mean_depth_average.at<double>(i, j)) -
+  //               static_cast<double>(three_map[0].at<ushort>(i, j)) >
+  //           threshold_data[i]) {
+  //         raw_deal_result.at<char>(i, j) = 0;
+  //       } else {
+  //         raw_deal_result.at<char>(i, j) = 255;
+  //       }
+  //     }
+  //   }
 
-  cv::imshow("raw ", raw_deal_result);
-  cv::waitKey(1);
+  //   cv::imshow("raw ", raw_deal_result);
+  //   cv::waitKey(1);
+  /* 把图片拼接起来 */
 
   for (int k = 0; k < up_num; k++) {
-    cv::Mat result = thresholding(three_map, mean_depth_average(ROI),
-                                  threshold_data, k, nums - 1);
-    deal_result.emplace_back(result.clone());
+    cv::Mat result_data(Height, Width, CV_8UC1, cv::Scalar(255));
+
+    thresholding(three_map_up, mean_depth_average(ROI_UP), threshold_data, k,
+                 nums - 1, ROI_UP, result_data);
+
+    thresholding(three_map_down, mean_depth_average(ROI_DOWN), threshold_data,
+                 k, nums - 1, ROI_DOWN, result_data);
+    deal_result.emplace_back(result_data.clone());
   }
 
   cv::imshow("after 0", deal_result[0]);
@@ -1392,10 +1405,10 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   //   std::cout << "consume time for Get3depth(): " << duration << "second"
   // << std::endl;
   start = clock();
-  for (int k = 0; k < up_num; k++) {
+  for (int h = 0; h < deal_result.size(); h++) {
     cv::Mat element = cv::getStructuringElement(
         cv::MORPH_RECT, cv::Size(3, 3));  // 闭操作核的大小
-    cv::morphologyEx(deal_result[k], deal_result[k], cv::MORPH_CLOSE,
+    cv::morphologyEx(deal_result[h], deal_result[h], cv::MORPH_CLOSE,
                      element);  // 闭操作
   }
   stop = clock();
@@ -1770,13 +1783,16 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    ROI = cv::Rect(160, 0, 520, 480);
+    ROI_UP = cv::Rect(300, 0, 200, 240);
+    ROI_DOWN = cv::Rect(160, 240, 520, 240);
     cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
-    cv::rectangle(display_rect1, ROI, cv::Scalar(0, 0, 255));
+    cv::rectangle(display_rect1, ROI_UP, cv::Scalar(0, 0, 255));
+    cv::rectangle(display_rect1, ROI_DOWN, cv::Scalar(0, 0, 255));
+
     cv::imshow("display_rect", display_rect1);
-    handle_depth(
-        Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums, ROI));
+    handle_depth(Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums,
+                            ROI_UP, ROI_DOWN));
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
     // std::cout << "consume time for handle: " << duration << "second"
@@ -1784,18 +1800,17 @@ void D435::get_mean_depth() {
   }
 }
 
-cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
-                           const std::vector<double> &thread_data, int h,
-                           int nums) {
+void D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
+                        const std::vector<double> &thread_data, int h, int nums,
+                        cv::Rect ROI, cv::Mat result) {
   //   std::cout << "mean_depth" << mean_depth <<"mean_depth_end"
   //   <<std::endl; std::cout << "raw_data" << data <<"raw_data_end"
   //   <<std::endl;
   clockid_t start, stop;
   double duration;
   start = clock();
-  cv::Mat result = cv::Mat::zeros(data[0].rows, data[0].cols, CV_8UC1);
-  for (int i = 0; i < result.rows; i++) {
-    for (int j = 0; j < result.cols; j++) {
+  for (int i = 0; i < mean_depth.rows; i++) {
+    for (int j = 0; j < mean_depth.cols; j++) {
       int count = 0;
       for (int k = 0; k < data.size(); k++) {
         if (data[k].at<ushort>(i, j) == 0) {
@@ -1808,9 +1823,9 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
         }
       }
       if (count > nums) {
-        result.at<uchar>(i, j) = 0;
+        result.at<uchar>(i + ROI.y, j + ROI.x) = 0;
       } else {
-        result.at<uchar>(i, j) = 255;
+        result.at<uchar>(i + ROI.y, j + ROI.x) = 255;
       }
     }
   }
@@ -1835,7 +1850,6 @@ cv::Mat D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   //   std::cout << "consume time for thresholding(): " << duration <<
   //   "second"
   // << std::endl;
-  return result.clone();
 }
 
 void D435::save_depth_image() {
