@@ -273,3 +273,56 @@ bool isInside(cv::Rect rect1, cv::Rect rect2) {
 }
 
 bool cmp(cv::Rect a, cv::Rect b) { return a.area() > b.area(); }
+
+/* 计算投影曲线 */
+void GetProjCueve(cv::Mat src, std::vector<float>& result_W,
+                  std::vector<float>& result_H) {
+  for (int i = 0; i < src.rows; i++) {
+    float tmp = 0;
+    for (int j = 0; j < src.cols; j++) {
+      tmp += static_cast<float>(src.at<uchar>(i, j));  // 计算每一列
+    }
+    result_H[i] = tmp;
+  }
+  for (int i = 0; i < src.cols; i++) {
+    double tmp = 0;
+    for (int j = 0; j < src.rows; j++) {
+      tmp += static_cast<float>(src.at<uchar>(j, i));  // 计算每一行
+    }
+    result_W[i] = tmp;
+  }
+}
+
+std::vector<int> velocity_compensate(std::vector<cv::Mat> data) {
+  std::vector<int> res;  // 存放矫正的最后结果
+  /* 接收处理好的阈值分割图 */
+  std::vector<float> Result1_H(data[0].rows, 0);
+  std::vector<float> Result1_W(data[0].cols, 0);
+  std::vector<float> Result2_H(data[1].rows, 0);
+  std::vector<float> Result2_W(data[1].cols, 0);
+  std::vector<float> Result3_H(data[2].rows, 0);
+  std::vector<float> Result3_W(data[2].cols, 0);
+
+  GetProjCueve(data[0], Result1_W, Result1_H);
+  GetProjCueve(data[1], Result2_W, Result2_H);
+  GetProjCueve(data[2], Result3_W, Result3_H);
+
+  /* 以第一层作为基准进行矫正 */
+  std::vector<float> Result;  // 存放模板匹配的结果
+
+  std::vector<float> Result_template =
+      std::vector<float>(Result1_H.begin() + 15, Result1_H.end() - 15);
+
+  /* 开始匹配 */
+
+  cv::matchTemplate(Result2_H, Result_template, Result, 5);
+  std::vector<float>::iterator itmax =
+      std::max_element(Result.begin(), Result.end());
+  res.emplace_back(std::distance(Result.begin(), itmax));
+
+  cv::matchTemplate(Result3_H, Result_template, Result, 5);
+  itmax = std::max_element(Result.begin(), Result.end());
+  res.emplace_back(std::distance(Result.begin(), itmax));
+
+  return res;
+}

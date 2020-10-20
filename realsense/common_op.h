@@ -50,4 +50,9 @@ bool isInside(cv::Rect rect1,
 
 bool cmp(cv::Rect a, cv::Rect b);
 
+/* 计算投影曲线 */
+void GetProjCueve(cv::Mat src, std::vector<float>& result_W,
+                  std::vector<float>& result_H);
+std::vector<int> velocity_compensate(std::vector<cv::Mat> data);
+
 #endif

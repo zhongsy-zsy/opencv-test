@@ -57,10 +57,10 @@ int main() {
   //   }
   //   std::cout << std::endl;
   GetProjCueve(src2, Result2_W, Result2_H);
-  std::vector<float> Result2_H_tmp =
-      std::vector<float>(Result2_H.begin() + 200, Result2_H.end() - 200);
+  std::vector<float> Result1_H_tmp =
+      std::vector<float>(Result1_H.begin() + 100, Result1_H.end() - 100);
 
-  cv::matchTemplate(Result1_H, Result2_H_tmp, Result, 5);
+  cv::matchTemplate(Result2_H, Result1_H_tmp, Result, 5);
   for (auto value : Result) {
     std::cout << value << " ";
   }
