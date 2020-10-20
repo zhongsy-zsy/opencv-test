@@ -94,6 +94,8 @@ class D435 {
 
   void region_thread(cv::Mat &data);
   void caculate_thread4();
+  /* 用来补偿车体移动对图像的损失 */
+  void image_translation(double delta_distance, cv::Mat iamge);
   cv::Vec3f pixel_to_world(cv::Vec3f point);
   std::shared_ptr<std::thread> run_executor_;
   rs2::context ctx;

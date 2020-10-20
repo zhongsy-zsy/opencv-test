@@ -509,7 +509,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
       //   cv::Rect ROI(160, 0, 520, 480);
       //   cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
-        //     cv::Mat imageROI = ROI_depth(ve_rect[i]);
+        cv::Mat imageROI = ROI_depth(ve_rect[i]);
         int x_delta = ve_rect[i].x;
         int y_delta = ve_rect[i].y;
         //     std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols
@@ -528,9 +528,9 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         //               << test[2] << std::endl;
 
         cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
-        for (int i = 0; i < depth_data.rows; i++) {
-          for (int j = 0; j < depth_data.cols; j++) {
-            float Z = static_cast<float>(depth_data.at<ushort>(i, j));
+        for (int i = 0; i < imageROI.rows; i++) {
+          for (int j = 0; j < imageROI.cols; j++) {
+            float Z = static_cast<float>(imageROI.at<ushort>(i, j));
             float X =
                 (static_cast<float>((j + x_delta) * Z) - depth_intrin.ppx * Z) /
                 depth_intrin
@@ -965,6 +965,11 @@ bool D435::PlaneFitting(const std::vector<Vector3VP> &points_input,
 
   return true;
 }
+/* 补偿速度对图像的损失 */
+
+void D435::image_translation(double delta_distance, cv::Mat iamge) {
+  // 先由车体坐标转换到相机坐标
+}
 
 void D435::calibration() {
   std::vector<Vector3VP> point_cloud;
@@ -1395,7 +1400,6 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
                  k, nums - 1, ROI_DOWN, result_data);
     deal_result.emplace_back(result_data.clone());
   }
-
   cv::imshow("after 0", deal_result[0]);
   cv::waitKey(1);
   cv::imshow("after 1", deal_result[1]);
