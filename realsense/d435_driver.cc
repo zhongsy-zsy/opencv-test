@@ -509,7 +509,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
       //   cv::Rect ROI(160, 0, 520, 480);
       //   cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
-        cv::Mat imageROI = ROI_depth(ve_rect[i]);
+        cv::Mat imageROI = depth_data(ve_rect[i]);
         int x_delta = ve_rect[i].x;
         int y_delta = ve_rect[i].y;
         //     std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols
