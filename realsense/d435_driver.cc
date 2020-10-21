@@ -420,10 +420,10 @@ void D435::find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
 
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
-  // 阈值分割
-  for (int i = 0; i < depth.size(); i++) {
-    cv::threshold(depth[i], depth[i], thresh, 255, cv::THRESH_BINARY_INV);
-  }
+  // // 阈值分割
+  // for (int i = 0; i < depth.size(); i++) {
+  //   cv::threshold(depth[i], depth[i], thresh, 255, cv::THRESH_BINARY_INV);
+  // }
   //   cv::imshow("erzhihua", threshold_output);
   //   cv::waitKey(1);
   // mask_depth(src, threshold_output);
@@ -1381,26 +1381,29 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   std::vector<cv::Mat> result_low;
   std::vector<cv::Mat> result_up;
   /* 开始把图像转成二值图 ,一共得到六张二值图*/
+  /* 第一层 */
   for (int i = 0; i < raw_data.size(); i++) {
-    cv::Mat result_image(Height, Width, CV_8UC1, cv::Scalar(255));
+    cv::Mat result_image(Height, Width, CV_8UC1, cv::Scalar(0));
     thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 0,
                       nums - 1, ROI_UP, result_image);
     thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 0,
                       nums - 1, ROI_DOWN, result_image);
     result_low.emplace_back(result_image.clone());
   }
+  /* 第二层 */
   for (int i = 0; i < raw_data.size(); i++) {
-    cv::Mat result_image(Height, Width, CV_8UC1, cv::Scalar(255));
+    cv::Mat result_image(Height, Width, CV_8UC1, cv::Scalar(0));
     thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 1,
                       nums - 1, ROI_UP, result_image);
     thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 1,
                       nums - 1, ROI_DOWN, result_image);
     result_up.emplace_back(result_image.clone());
   }
+  /* 用上一层去计算 */
   std::vector<cv::Mat> to_calculate;
-  cv::Rect ROI2calculate(300, 240, 200, 240);
+  cv::Rect ROI2calculate(350, 240, 200, 240);
   for (int i = 0; i < result_low.size(); i++) {
-    to_calculate.emplace_back(result_low[i](ROI2calculate));
+    to_calculate.emplace_back(result_up[i](ROI2calculate));
   }
   std::cout << "size" << to_calculate.size() << result_low.size() << std::endl;
 
@@ -1409,7 +1412,7 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
                                            /* 开始补偿 */
   std::cout << "over vel_compensate" << std::endl;
   for (int k = 0; k < 2; k++) {
-    cv::Mat compensate_image(Height, Width, CV_8UC1, cv::Scalar(255));
+    cv::Mat compensate_image(Height, Width, CV_8UC1, cv::Scalar(0));
     cv::Mat roi = result_up[k + 1](
         cv::Rect(0, result_dis[k], Width, Height - result_dis[k]));
     roi.copyTo(compensate_image);
@@ -1418,7 +1421,7 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   std::cout << "over vel_compensate 1" << std::endl;
 
   for (int k = 0; k < 2; k++) {
-    cv::Mat compensate_image(Height, Width, CV_8UC1, cv::Scalar(255));
+    cv::Mat compensate_image(Height, Width, CV_8UC1, cv::Scalar(0));
     cv::Mat roi = result_low[k + 1](
         cv::Rect(0, result_dis[k], Width, Height - result_dis[k]));
     roi.copyTo(compensate_image(cv::Rect(0, 0, Width, Height - result_dis[k])));
@@ -1427,17 +1430,17 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   }
   std::cout << "over vel_compensate 2" << std::endl;
 
-  cv::Mat deal_image(Height, Width, CV_8UC1, cv::Scalar(255));
+  cv::Mat deal_image(Height, Width, CV_8UC1, cv::Scalar(0));
   for (int i = 0; i < result_up[0].rows; i++) {
     for (int j = 0; j < result_up[0].cols; j++) {
       int count = 0;
       for (int k = 0; k < result_up.size(); k++) {
-        if (result_up[k].at<uchar>(i, j) == 0) {
+        if (result_up[k].at<uchar>(i, j) == 255) {
           count++;
         }
       }
       if (count > 2) {
-        deal_image.at<uchar>(i, j) = 0;
+        deal_image.at<uchar>(i, j) = 255;
       }
     }
   }
@@ -1458,9 +1461,9 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   }
   deal_result.emplace_back(deal_image.clone());
 
-  cv::imshow("result_1", result_low[0]);
-  cv::imshow("result_2", result_low[1]);
-  cv::imshow("result_3", result_low[2]);
+  cv::imshow("result_1", result_up[0]);
+  cv::imshow("result_2", result_up[1]);
+  cv::imshow("result_3", result_up[2]);
 
   // cv::imwrite("1.jpg", deal_result[0]);
   // cv::imwrite("2.jpg", deal_result[1]);
@@ -1904,16 +1907,16 @@ void D435::thresholding2gray(cv::Mat data, cv::Mat mean_depth,
   for (int i = ROI.y; i < ROI.y + ROI.height; i++) {
     for (int j = ROI.x; j < ROI.width; j++) {
       if (data.at<ushort>(i, j) == 0) {
-        result_image.at<uchar>(i, j) = 255;
+        result_image.at<uchar>(i, j) = 0;
         continue;
       }
       if (static_cast<double>(mean_depth.at<double>(i, j)) -
               static_cast<double>(data.at<ushort>(i, j)) >
           thread_data[i] * up_to_nums[h]) {
-        result_image.at<uchar>(i, j) = 0;
+        result_image.at<uchar>(i, j) = 255;
 
       } else {
-        result_image.at<uchar>(i, j) = 255;
+        result_image.at<uchar>(i, j) = 0;
       }
     }
   }
