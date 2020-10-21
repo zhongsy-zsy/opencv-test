@@ -1812,8 +1812,10 @@ void D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   clockid_t start, stop;
   double duration;
   start = clock();
-  for (int i = ROI.y; i < ROI.height; i++) {
-    for (int j = ROI.x; j < ROI.width; j++) {
+  // std::cout << ROI.x << " " << ROI.y << " " << ROI.height << " " << ROI.width
+  //           << std::endl;
+  for (int i = ROI.y; i < ROI.height + ROI.y; i++) {
+    for (int j = ROI.x; j < ROI.width + ROI.x; j++) {
       int count = 0;
       for (int k = 0; k < data.size(); k++) {
         if (data[k].at<ushort>(i, j) == 0) {
