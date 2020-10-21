@@ -1905,7 +1905,7 @@ void D435::thresholding2gray(cv::Mat data, cv::Mat mean_depth,
                              const std::vector<double> &thread_data, int h,
                              int nums, cv::Rect ROI, cv::Mat result_image) {
   for (int i = ROI.y; i < ROI.y + ROI.height; i++) {
-    for (int j = ROI.x; j < ROI.width; j++) {
+    for (int j = ROI.x; j < ROI.x + ROI.width; j++) {
       if (data.at<ushort>(i, j) == 0) {
         result_image.at<uchar>(i, j) = 0;
         continue;
