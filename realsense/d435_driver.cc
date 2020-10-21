@@ -344,7 +344,7 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
     cv::imshow("diaplay", display);
     cv::waitKey(1);
     cv::imshow("roi_depth", depth(ROI));
-    res.emplace_back(depth(ROI).clone());
+    res.emplace_back(depth.clone());
   }
 
   //   cv::Mat display = depth.clone();
@@ -509,7 +509,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
       //   cv::Rect ROI(160, 0, 520, 480);
       //   cv::Mat ROI_depth = depth_data(ROI);
       for (int i = 0; i < ve_rect.size(); i++) {
-        cv::Mat imageROI = ROI_depth(ve_rect[i]);
+        cv::Mat imageROI = depth_data(ve_rect[i]);
         int x_delta = ve_rect[i].x;
         int y_delta = ve_rect[i].y;
         //     std::cout << "iamge :" << ROI_depth.rows << " " << ROI_depth.cols
@@ -1365,14 +1365,13 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   clock_t start, stop;
   double duration;
   start = clock();
-  std::vector<cv::Mat> three_map_up;
-  std::vector<cv::Mat> three_map_down;
+  std::vector<cv::Mat> three_map;
+  // std::vector<cv::Mat> three_map;
 
   std::vector<cv::Mat> deal_result;
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
 
-  three_map_up = get_depth2calculate(ROI_UP);
-  three_map_down = get_depth2calculate(ROI_DOWN);
+  three_map = get_depth2calculate(ROI_UP);
 
   //   for (int i = 0; i < three_map[0].rows; i++) {
   //     for (int j = 0; j < three_map[0].cols; j++) {
@@ -1393,11 +1392,11 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   for (int k = 0; k < up_num; k++) {
     cv::Mat result_data(Height, Width, CV_8UC1, cv::Scalar(255));
 
-    thresholding(three_map_up, mean_depth_average(ROI_UP), threshold_data, k,
-                 nums - 1, ROI_UP, result_data);
+    thresholding(three_map, mean_depth_average, threshold_data, k, nums - 1,
+                 ROI_UP, result_data);
 
-    thresholding(three_map_down, mean_depth_average(ROI_DOWN), threshold_data,
-                 k, nums - 1, ROI_DOWN, result_data);
+    thresholding(three_map, mean_depth_average, threshold_data, k, nums - 1,
+                 ROI_DOWN, result_data);
     deal_result.emplace_back(result_data.clone());
   }
   cv::imshow("after 0", deal_result[0]);
@@ -1813,8 +1812,8 @@ void D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   clockid_t start, stop;
   double duration;
   start = clock();
-  for (int i = 0; i < mean_depth.rows; i++) {
-    for (int j = 0; j < mean_depth.cols; j++) {
+  for (int i = ROI.y; i < ROI.height; i++) {
+    for (int j = ROI.x; j < ROI.width; j++) {
       int count = 0;
       for (int k = 0; k < data.size(); k++) {
         if (data[k].at<ushort>(i, j) == 0) {
@@ -1822,14 +1821,14 @@ void D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
         }
         if (static_cast<double>(mean_depth.at<double>(i, j)) -
                 static_cast<double>(data[k].at<ushort>(i, j)) >
-            thread_data[i + ROI.y] * up_to_nums[h]) {
+            thread_data[i] * up_to_nums[h]) {
           count++;
         }
       }
       if (count > nums) {
-        result.at<uchar>(i + ROI.y, j + ROI.x) = 0;
+        result.at<uchar>(i, j) = 0;
       } else {
-        result.at<uchar>(i + ROI.y, j + ROI.x) = 255;
+        result.at<uchar>(i, j) = 255;
       }
     }
   }
