@@ -530,6 +530,10 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
+            if (imageROI.at<ushort>(i, j) == 0) {
+              depth_data.at < ushort >= 4000;
+              continue;
+            }
             float Z = static_cast<float>(imageROI.at<ushort>(i, j));
             float X =
                 (static_cast<float>((j + x_delta) * Z) - depth_intrin.ppx * Z) /
