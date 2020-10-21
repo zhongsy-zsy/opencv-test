@@ -531,7 +531,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
             if (imageROI.at<ushort>(i, j) == 0) {
-              depth_data.at < ushort >= 4000;
+              imageROI.at<ushort>(i, j) = 4000;
               continue;
             }
             float Z = static_cast<float>(imageROI.at<ushort>(i, j));
@@ -547,9 +547,9 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
             Y = std::cos(ration_angle) * Y + std::sin(ration_angle) * Z;
             if (depth_data.at<ushort>(i, j) == 0 ||
                 std::fabs(X) > threshold_x) {  // 这边可以再加一个Y的阈值
-              depth_data.at<ushort>(i, j) = 4000;
+              imageROI.at<ushort>(i, j) = 4000;
             } else {
-              depth_data.at<ushort>(i, j) = static_cast<ushort>(Z);
+              imageROI.at<ushort>(i, j) = static_cast<ushort>(Z);
             }
           }
         }
@@ -563,16 +563,16 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         // for(int i=0;i<3;i++)
         //   std::cout << "imageROI" << imageROI << std::endl;
         while (tmp.size() <= 3) {
-          cv::minMaxLoc(depth_data, &min_dis, NULL, &min_point, NULL);
+          cv::minMaxLoc(imageROI, &min_dis, NULL, &min_point, NULL);
           //  std::cout<<"min_dis_roi"<<min_dis<<std::endl;
           // 优化获取的是前面3个最小点的平均值
           if (tmp.empty()) {
             tmp.emplace_back(min_dis);
-            depth_data.at<ushort>(min_point) = 4000;
+            imageROI.at<ushort>(min_point) = 4000;
           } else {
             if (std::fabs(min_dis - tmp.back()) < 40) {
               tmp.emplace_back(min_dis);
-              depth_data.at<ushort>(min_point) = 4000;
+              imageROI.at<ushort>(min_point) = 4000;
             } else {
               // 是噪声点
               tmp.pop_back();
