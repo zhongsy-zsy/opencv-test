@@ -85,11 +85,20 @@ void D435::Init() {
 
   run_executor_ =
       std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
+
+  getdepth_executor_ =
+      std::make_shared<std::thread>(std::bind(&D435::threadofget_depth, this));
 }
 
 void D435::GetData(void *data) {
   auto cdata = static_cast<cv::Mat *>(data);
   *cdata = depth_data;
+}
+
+void D435::threadofget_depth() {
+  while (1) {
+    get_depthforthread();
+  }
 }
 
 void D435::separate_byte() {
@@ -270,6 +279,19 @@ void D435::calibration_angle() {
       }
     }
   }
+}
+
+void D435::get_depthforthread() {
+  while (depth_queue.size() > 6) {
+    depth_queue.pop();
+  }
+  frames = pipe.wait_for_frames();
+  rs2::depth_frame depth_frame = frames.get_depth_frame();
+
+  cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
+                (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
+
+  depth_queue.push(depth.clone());
 }
 
 std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
@@ -1374,8 +1396,22 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
 
   std::vector<cv::Mat> deal_result;
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
+  bool ifwait = false;
+  std::cout << "depth_queue_size: " << depth_queue.size() << std::endl;
+  if (depth_queue.size() < 3) {
+    ifwait = true;
+  }
+  while (ifwait) {
+    if (depth_queue.size() >= 3) {
+      ifwait = false;
+    }
+  }
 
-  three_map = get_depth2calculate(ROI_UP);
+  for (int i = 0; i < 3; i++) {
+    three_map.emplace_back(depth_queue.front().clone());
+    depth_queue.front().copyTo(depth_data);
+    depth_queue.pop();
+  }
 
   //   for (int i = 0; i < three_map[0].rows; i++) {
   //     for (int j = 0; j < three_map[0].cols; j++) {
@@ -1802,8 +1838,8 @@ void D435::get_mean_depth() {
                             ROI_UP, ROI_DOWN));
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
-    // std::cout << "consume time for handle: " << duration << "second"
-    //   << std::endl;
+    std::cout << "consume time for handle: " << duration << "second"
+      << std::endl;
   }
 }
 

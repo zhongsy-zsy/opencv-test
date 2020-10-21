@@ -76,7 +76,8 @@ class D435 {
                     const std::vector<double> &thread_data, int h, int nums,
                     cv::Rect ROI, cv::Mat result);
   void calibration_angle();
-
+  void threadofget_depth();
+  void get_depthforthread();
  private:
   //自定义接口
   void HandleFeedbackData();
@@ -98,6 +99,8 @@ class D435 {
   void image_translation(double delta_distance, cv::Mat iamge);
   cv::Vec3f pixel_to_world(cv::Vec3f point);
   std::shared_ptr<std::thread> run_executor_;
+  std::shared_ptr<std::thread> getdepth_executor_;
+
   rs2::context ctx;
   rs2::frameset frames;
   rs2::pipeline pipe;
@@ -130,5 +133,6 @@ class D435 {
   float ration_angle;
   cv::Rect ROI_UP;
   cv::Rect ROI_DOWN;
+  std::queue<cv::Mat> depth_queue;
 };
 #endif  // REALSENSE_D435_DRIVER_H_
