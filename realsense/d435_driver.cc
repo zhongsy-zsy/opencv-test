@@ -292,6 +292,7 @@ void D435::get_depthforthread() {
                 (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
 
   depth_queue.push(depth.clone());
+  std::cout << "size ： " << depth_queue.size() << std::endl;
 }
 
 std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
@@ -438,7 +439,7 @@ void D435::find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
   //   dep = depth.clone();
   //   cv::Mat threshold_output;
   std::vector<std::vector<cv::Point>> contours;
-  cv::Mat drawing = cv::Mat::zeros(Height, Width, CV_8UC3);  // 用于画图显示
+  // cv::Mat drawing = cv::Mat::zeros(Height, Width, CV_8UC3);  // 用于画图显示
 
   std::vector<cv::Vec4i> hierarchy;
   cv::RNG rng(12345);
@@ -471,14 +472,16 @@ void D435::find_obstacle(std::vector<cv::Mat> depth, int thresh, int max_thresh,
       result.push_back(hull[i]);
       cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255),
                                     rng.uniform(0, 255));
-      drawContours(drawing, contours, i, color, 1, 8, std::vector<cv::Vec4i>(),
-                   0, cv::Point());
-      drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(), 0,
-                   cv::Point());
+      // drawContours(drawing, contours, i, color, 1, 8,
+      // std::vector<cv::Vec4i>(),
+      //              0, cv::Point());
+      // drawContours(drawing, hull, i, color, 1, 8, std::vector<cv::Vec4i>(),
+      // 0,
+      //              cv::Point());
     }
     contours.clear();
   }
-  cv::imshow("contours", drawing);
+  // cv::imshow("contours", drawing);
 }
 
 void D435::quit_black_block(cv::Mat &image) {
@@ -496,7 +499,7 @@ void D435::quit_black_block(cv::Mat &image) {
 
 void D435::calculate_mindistance(float threshold_x, float threshold_y) {
   std::vector<cv::Rect> ve_rect;
-  cv::Mat drawing = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
+  // cv::Mat drawing = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
 
   if (result.empty()) {
     // 设置避障等级为0
@@ -549,7 +552,7 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
         //     "test[2]"
         //               << test[2] << std::endl;
 
-        cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
+        // cv::rectangle(drawing, ve_rect[i], cv::Scalar(0, 0, 255));
         for (int i = 0; i < imageROI.rows; i++) {
           for (int j = 0; j < imageROI.cols; j++) {
             if (imageROI.at<ushort>(i, j) == 0) {
@@ -576,8 +579,8 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
           }
         }
         // std::cout << imageROI << std::endl;
-        cv::imshow("rectangle", drawing);
-        cv::waitKey(1);
+        // cv::imshow("rectangle", drawing);
+        // cv::waitKey(1);
         double min_dis;
         cv::Point min_point;
         std::vector<int> tmp;
@@ -612,15 +615,15 @@ void D435::calculate_mindistance(float threshold_x, float threshold_y) {
       if (!res.empty()) {
         min_distance = *std::min_element(res.begin(), res.end());
         std::cout << "min_diatance" << min_distance << std::endl;
-        if (min_distance < 1000) {
-          std::cout << "stop avoid" << std::endl;
-        } else if (min_distance < 1500) {
-          std::cout << "avoid level 1" << std::endl;
-        } else if (min_distance < 4000) {
-          std::cout << "avoid level 2" << std::endl;
-        } else {
-          std::cout << "aviod FREE" << std::endl;
-        }
+        // if (min_distance < 1000) {
+        //   std::cout << "stop avoid" << std::endl;
+        // } else if (min_distance < 1500) {
+        //   std::cout << "avoid level 1" << std::endl;
+        // } else if (min_distance < 4000) {
+        //   std::cout << "avoid level 2" << std::endl;
+        // } else {
+        //   std::cout << "aviod FREE" << std::endl;
+        // }
       } else {
         std::cout << "avoid FREE" << std::endl;
       }
@@ -1396,15 +1399,10 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
 
   std::vector<cv::Mat> deal_result;
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
-  bool ifwait = false;
   std::cout << "depth_queue_size: " << depth_queue.size() << std::endl;
-  if (depth_queue.size() < 3) {
-    ifwait = true;
-  }
-  while (ifwait) {
-    if (depth_queue.size() >= 3) {
-      ifwait = false;
-    }
+
+  while (depth_queue.size() < 3) {
+    std::cout << "depth_queue_size: " << depth_queue.size() << std::endl;
   }
 
   for (int i = 0; i < 3; i++) {
@@ -1439,10 +1437,10 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
                  ROI_DOWN, result_data);
     deal_result.emplace_back(result_data.clone());
   }
-  cv::imshow("after 0", deal_result[0]);
-  cv::waitKey(1);
-  cv::imshow("after 1", deal_result[1]);
-  cv::waitKey(1);
+  // cv::imshow("after 0", deal_result[0]);
+  // cv::waitKey(1);
+  // cv::imshow("after 1", deal_result[1]);
+  // cv::waitKey(1);
   stop = clock();
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   //   std::cout << "consume time for Get3depth(): " << duration << "second"
@@ -1458,10 +1456,10 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   //   std::cout << "consume time for close(): " << duration << "second"
   // << std::endl;
-  cv::imshow("close 0", deal_result[0]);
-  cv::waitKey(1);
-  cv::imshow("close 1", deal_result[1]);
-  cv::waitKey(1);
+  // cv::imshow("close 0", deal_result[0]);
+  // cv::waitKey(1);
+  // cv::imshow("close 1", deal_result[1]);
+  // cv::waitKey(1);
   //   cv::Mat element1 = cv::getStructuringElement(
   //       cv::MORPH_RECT, cv::Size(7, 7));  // 膨胀操作核的大小
   //   cv::imshow("close", data);
@@ -1783,6 +1781,7 @@ void D435::get_mean_depth() {
   //   }
   //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(35));
     clockid_t start, stop;
     int nums = 3;
     double duration;
@@ -1839,7 +1838,7 @@ void D435::get_mean_depth() {
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
     std::cout << "consume time for handle: " << duration << "second"
-      << std::endl;
+              << std::endl;
   }
 }
 
