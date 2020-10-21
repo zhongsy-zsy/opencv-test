@@ -296,6 +296,7 @@ void GetProjCueve(cv::Mat src, std::vector<float>& result_W,
 std::vector<int> velocity_compensate(std::vector<cv::Mat> data) {
   std::vector<int> res;  // 存放矫正的最后结果
   /* 接收处理好的阈值分割图 */
+  std::cout << data.size() << std::endl;
   std::vector<float> Result1_H(data[0].rows, 0);
   std::vector<float> Result1_W(data[0].cols, 0);
   std::vector<float> Result2_H(data[1].rows, 0);
@@ -306,7 +307,6 @@ std::vector<int> velocity_compensate(std::vector<cv::Mat> data) {
   GetProjCueve(data[0], Result1_W, Result1_H);
   GetProjCueve(data[1], Result2_W, Result2_H);
   GetProjCueve(data[2], Result3_W, Result3_H);
-
   /* 以第一层作为基准进行矫正 */
   std::vector<float> Result;  // 存放模板匹配的结果
 
@@ -323,6 +323,10 @@ std::vector<int> velocity_compensate(std::vector<cv::Mat> data) {
   cv::matchTemplate(Result3_H, Result_template, Result, 5);
   itmax = std::max_element(Result.begin(), Result.end());
   res.emplace_back(std::distance(Result.begin(), itmax));
-
+  std::cout << "move_dis" << std::endl;
+  for (auto a : res) {
+    std::cout << a << " ";
+  }
+  std::cout << std::endl;
   return res;
 }

@@ -344,7 +344,7 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
     cv::imshow("diaplay", display);
     cv::waitKey(1);
     cv::imshow("roi_depth", depth(ROI));
-    res.emplace_back(depth(ROI).clone());
+    res.emplace_back(depth.clone());
   }
 
   //   cv::Mat display = depth.clone();
@@ -1373,29 +1373,28 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
 
   /* TODO：这里要优化，这时候相当于取了六幅图 */
   raw_data = get_depth2calculate(cv::Rect(0, 0, Width, Height));
-  for (int i = 0; i < raw_data.size(); i++) {
-    three_map_up.emplace_back(raw_data[i](ROI_UP).clone());
-    three_map_down.emplace_back(raw_data[i](ROI_DOWN).clone());
-  }
+  // for (int i = 0; i < raw_data.size(); i++) {
+  //   three_map_up.emplace_back(raw_data[i](ROI_UP).clone());
+  //   three_map_down.emplace_back(raw_data[i](ROI_DOWN).clone());
+  // }
 
   std::vector<cv::Mat> result_low;
   std::vector<cv::Mat> result_up;
-
   /* 开始把图像转成二值图 ,一共得到六张二值图*/
-  for (int i = 0; i < three_map_down.size(); i++) {
+  for (int i = 0; i < raw_data.size(); i++) {
     cv::Mat result_image(Height, Width, CV_8UC1, cv::Scalar(255));
-    thresholding2gray(three_map_up[i], mean_depth_average(ROI_UP),
-                      threshold_data, 0, nums - 1, ROI_UP, result_image);
-    thresholding2gray(three_map_down[i], mean_depth_average(ROI_DOWN),
-                      threshold_data, 0, nums - 1, ROI_DOWN, result_image);
+    thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 0,
+                      nums - 1, ROI_UP, result_image);
+    thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 0,
+                      nums - 1, ROI_DOWN, result_image);
     result_low.emplace_back(result_image.clone());
   }
-  for (int i = 0; i < three_map_down.size(); i++) {
+  for (int i = 0; i < raw_data.size(); i++) {
     cv::Mat result_image(Height, Width, CV_8UC1, cv::Scalar(255));
-    thresholding2gray(three_map_up[i], mean_depth_average(ROI_UP),
-                      threshold_data, 1, nums - 1, ROI_UP, result_image);
-    thresholding2gray(three_map_down[i], mean_depth_average(ROI_DOWN),
-                      threshold_data, 1, nums - 1, ROI_DOWN, result_image);
+    thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 1,
+                      nums - 1, ROI_UP, result_image);
+    thresholding2gray(raw_data[i], mean_depth_average, threshold_data, 1,
+                      nums - 1, ROI_DOWN, result_image);
     result_up.emplace_back(result_image.clone());
   }
   std::vector<cv::Mat> to_calculate;
@@ -1403,29 +1402,37 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   for (int i = 0; i < result_low.size(); i++) {
     to_calculate.emplace_back(result_low[i](ROI2calculate));
   }
+  std::cout << "size" << to_calculate.size() << result_low.size() << std::endl;
+
   std::vector<int> result_dis(
       velocity_compensate(to_calculate));  // 得到需要补偿的距离
-  /* 开始补偿 */
+                                           /* 开始补偿 */
+  std::cout << "over vel_compensate" << std::endl;
   for (int k = 0; k < 2; k++) {
     cv::Mat compensate_image(Height, Width, CV_8UC1, cv::Scalar(255));
     cv::Mat roi = result_up[k + 1](
         cv::Rect(0, result_dis[k], Width, Height - result_dis[k]));
     roi.copyTo(compensate_image);
-    compensate_image.copyTo(result_up[k]);
+    compensate_image.copyTo(result_up[k + 1]);
   }
+  std::cout << "over vel_compensate 1" << std::endl;
+
   for (int k = 0; k < 2; k++) {
     cv::Mat compensate_image(Height, Width, CV_8UC1, cv::Scalar(255));
     cv::Mat roi = result_low[k + 1](
         cv::Rect(0, result_dis[k], Width, Height - result_dis[k]));
-    roi.copyTo(compensate_image);
-    compensate_image.copyTo(result_low[k]);
+    roi.copyTo(compensate_image(cv::Rect(0, 0, Width, Height - result_dis[k])));
+    // compensate_image.copyTo(result_low[k + 1]);
+    result_low[k + 1] = compensate_image.clone();
   }
+  std::cout << "over vel_compensate 2" << std::endl;
+
   cv::Mat deal_image(Height, Width, CV_8UC1, cv::Scalar(255));
   for (int i = 0; i < result_up[0].rows; i++) {
     for (int j = 0; j < result_up[0].cols; j++) {
       int count = 0;
       for (int k = 0; k < result_up.size(); k++) {
-        if (result_up[k].at<uchar>(i, j) = 0) {
+        if (result_up[k].at<uchar>(i, j) == 0) {
           count++;
         }
       }
@@ -1434,13 +1441,13 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
       }
     }
   }
-  deal_result.emplace_back(deal_image);
+  deal_result.emplace_back(deal_image.clone());
 
   for (int i = 0; i < result_low[0].rows; i++) {
     for (int j = 0; j < result_low[0].cols; j++) {
       int count = 0;
       for (int k = 0; k < result_low.size(); k++) {
-        if (result_low[k].at<uchar>(i, j) = 0) {
+        if (result_low[k].at<uchar>(i, j) == 0) {
           count++;
         }
       }
@@ -1449,7 +1456,14 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
       }
     }
   }
-  deal_result.emplace_back(deal_image);
+  deal_result.emplace_back(deal_image.clone());
+
+  cv::imshow("result_1", result_low[0]);
+  cv::imshow("result_2", result_low[1]);
+  cv::imshow("result_3", result_low[2]);
+
+  // cv::imwrite("1.jpg", deal_result[0]);
+  // cv::imwrite("2.jpg", deal_result[1]);
 
   //   for (int i = 0; i < three_map[0].rows; i++) {
   //     for (int j = 0; j < three_map[0].cols; j++) {
@@ -1486,6 +1500,7 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
   //   std::cout << "consume time for Get3depth(): " << duration << "second"
   // << std::endl;
+  std::cout << "hand_over" << std::endl;
   start = clock();
   for (int h = 0; h < deal_result.size(); h++) {
     cv::Mat element = cv::getStructuringElement(
@@ -1865,8 +1880,8 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
-    ROI_UP = cv::Rect(300, 0, 200, 240);
-    ROI_DOWN = cv::Rect(160, 240, 520, 240);
+    ROI_UP = cv::Rect(300, 0, 300, 240);
+    ROI_DOWN = cv::Rect(100, 240, 600, 240);
     cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
     cv::rectangle(display_rect1, ROI_UP, cv::Scalar(0, 0, 255));
@@ -1886,19 +1901,19 @@ void D435::get_mean_depth() {
 void D435::thresholding2gray(cv::Mat data, cv::Mat mean_depth,
                              const std::vector<double> &thread_data, int h,
                              int nums, cv::Rect ROI, cv::Mat result_image) {
-  for (int i = 0; i < mean_depth.rows; i++) {
-    for (int j = 0; j < mean_depth.cols; j++) {
+  for (int i = ROI.y; i < ROI.y + ROI.height; i++) {
+    for (int j = ROI.x; j < ROI.width; j++) {
       if (data.at<ushort>(i, j) == 0) {
-        result_image.at<uchar>(i + ROI.y, j + ROI.x) = 255;
+        result_image.at<uchar>(i, j) = 255;
         continue;
       }
       if (static_cast<double>(mean_depth.at<double>(i, j)) -
               static_cast<double>(data.at<ushort>(i, j)) >
-          thread_data[i + ROI.y] * up_to_nums[h]) {
-        result_image.at<uchar>(i + ROI.y, j + ROI.x) = 0;
+          thread_data[i] * up_to_nums[h]) {
+        result_image.at<uchar>(i, j) = 0;
 
       } else {
-        result_image.at<uchar>(i + ROI.y, j + ROI.x) = 255;
+        result_image.at<uchar>(i, j) = 255;
       }
     }
   }
