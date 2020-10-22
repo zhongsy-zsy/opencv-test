@@ -97,7 +97,14 @@ void D435::GetData(void *data) {
 
 void D435::threadofget_depth() {
   while (1) {
+    clock_t start, stop;
+    double duration;
+    start = clock();
     get_depthforthread();
+    stop = clock();
+    duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
+    std::cout << "consume time for Getdepth(): " << duration << "second"
+              << std::endl;
   }
 }
 
@@ -285,14 +292,20 @@ void D435::get_depthforthread() {
   while (depth_queue.size() > 6) {
     depth_queue.pop();
   }
+  // clock_t start, stop;
+  // double duration;
+  // start = clock();
   frames = pipe.wait_for_frames();
   rs2::depth_frame depth_frame = frames.get_depth_frame();
 
   cv::Mat depth(cv::Size(Width, Height), CV_16UC1,
                 (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
 
-  depth_queue.push(depth.clone());
-  std::cout << "size ： " << depth_queue.size() << std::endl;
+  // depth_queue.push(depth.clone());
+  // stop = clock();
+  // duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
+  // std::cout << "consume time for threadof: " << duration << "second"
+  //           << std::endl;
 }
 
 std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
@@ -1781,7 +1794,6 @@ void D435::get_mean_depth() {
   //   }
   //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(35));
     clockid_t start, stop;
     int nums = 3;
     double duration;
@@ -1825,14 +1837,16 @@ void D435::get_mean_depth() {
       std::cin.ignore();
     }
     start = clock();
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+
     ROI_UP = cv::Rect(300, 0, 200, 240);
     ROI_DOWN = cv::Rect(160, 240, 520, 240);
-    cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
+    // cv::Mat display_rect1 = cv::Mat::zeros(Height, Width, CV_8UC3);
 
-    cv::rectangle(display_rect1, ROI_UP, cv::Scalar(0, 0, 255));
-    cv::rectangle(display_rect1, ROI_DOWN, cv::Scalar(0, 0, 255));
+    // cv::rectangle(display_rect1, ROI_UP, cv::Scalar(0, 0, 255));
+    // cv::rectangle(display_rect1, ROI_DOWN, cv::Scalar(0, 0, 255));
 
-    cv::imshow("display_rect", display_rect1);
+    // cv::imshow("display_rect", display_rect1);
     handle_depth(Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums,
                             ROI_UP, ROI_DOWN));
     stop = clock();
