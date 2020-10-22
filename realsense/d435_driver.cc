@@ -1794,6 +1794,7 @@ void D435::get_mean_depth() {
         double num = 0;
         std::cout << "please in put a num" << std::endl;
         std::cin >> num;
+        std::cout << "num is : " << num << std::endl;
         for (int i = 0; i < mean_depth_average.rows; i++) {
           for (int j = 0; j < mean_depth_average.cols; j++) {
             mean_depth_average.at<double>(i, j) += num;
