@@ -1788,6 +1788,20 @@ void D435::get_mean_depth() {
       }
       std::cin.clear();
       std::cin.ignore();
+      std::cout << "Do you want to change background ? t or f" << std::endl;
+      std::cin >> tmp;
+      if (tmp == 't') {
+        double num = 0;
+        std::cout << "please in put a num" << std::endl;
+        std::cin >> num;
+        for (int i = 0; i < mean_depth_average.rows; i++) {
+          for (int j = 0; j < mean_depth_average.cols; j++) {
+            mean_depth_average.at<double>(i, j) += num;
+          }
+        }
+      }
+      std::cin.clear();
+      std::cin.ignore();
     }
     start = clock();
     ROI_UP = cv::Rect(300, 0, 200, 240);
