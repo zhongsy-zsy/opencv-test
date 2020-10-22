@@ -1802,6 +1802,18 @@ void D435::get_mean_depth() {
       }
       std::cin.clear();
       std::cin.ignore();
+      std::cout << "Do you want to save background ? t or f" << std::endl;
+      std::cin >> tmp;
+      if (tmp == 't') {
+        cv::Mat tmp = cv::Mat::zeros(Height, Width, CV_8UC1);
+        for (int i = 0; i < tmp.rows; i++) {
+          for (int j = 0; j < tmp.cols; j++) {
+            tmp.at<ushort>(i, j) =
+                static_cast<ushort>(mean_depth_average.at<double>(i, j));
+          }
+        }
+        cv::imwrite("best_background.png", mean_depth_average);
+      }
     }
     start = clock();
     ROI_UP = cv::Rect(300, 0, 200, 240);
