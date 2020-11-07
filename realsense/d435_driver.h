@@ -125,10 +125,12 @@ class D435 {
   std::vector<std::deque<cv::Mat>> light_stream;  // 存放用来平均的图片
   std::vector<int> are_threshold;
   std::vector<double> up_to_nums;
+  int up_pile = 0;
   rs2::stream_profile dprofile;  // 用来存放深度相机参数
   rs2_intrinsics depth_intrin;
   float ration_angle;
   cv::Rect ROI_UP;
   cv::Rect ROI_DOWN;
+  int nums = 2;  //控制每一次取多少张图
 };
 #endif  // REALSENSE_D435_DRIVER_H_

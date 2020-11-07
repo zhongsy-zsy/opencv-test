@@ -278,7 +278,7 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
   start = clock();
   cv::Mat raw_data;
   std::vector<cv::Mat> res;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < nums; i++) {
     frames = pipe.wait_for_frames();
     rs2::depth_frame depth_frame = frames.get_depth_frame();
     rs2::frame filtered_frame = depth_frame;
@@ -1376,6 +1376,15 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   cv::Mat raw_deal_result = cv::Mat::zeros(Height, Width, CV_8UC1);
 
   three_map = get_depth2calculate(ROI_UP);
+#if 1
+  // 先进行腐蚀处理
+  for (int h = 0; h < three_map.size(); h++) {
+    cv::Mat element = cv::getStructuringElement(
+        cv::MORPH_RECT, cv::Size(5, 5));  // 闭操作核的大小
+    cv::dilate(three_map[h], three_map[h],
+               element);  // 闭操作
+  }
+#endif
 
   //   for (int i = 0; i < three_map[0].rows; i++) {
   //     for (int j = 0; j < three_map[0].cols; j++) {
@@ -1393,16 +1402,19 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
   //   cv::waitKey(1);
   /* 把图片拼接起来 */
 
+  //尝试一下这里不处理上一层的三张，只是处理下面的三张；
+
   for (int k = 0; k < up_num; k++) {
     cv::Mat result_data(Height, Width, CV_8UC1, cv::Scalar(255));
 
-    thresholding(three_map, mean_depth_average, threshold_data, k, nums - 1,
-                 ROI_UP, result_data);
+    thresholding(three_map, mean_depth_average, threshold_data, k, nums, ROI_UP,
+                 result_data);
 
-    thresholding(three_map, mean_depth_average, threshold_data, k, nums - 1,
+    thresholding(three_map, mean_depth_average, threshold_data, k, nums,
                  ROI_DOWN, result_data);
     deal_result.emplace_back(result_data.clone());
   }
+
   cv::imshow("after 0", deal_result[0]);
   cv::waitKey(1);
   cv::imshow("after 1", deal_result[1]);
@@ -1748,7 +1760,6 @@ void D435::get_mean_depth() {
   //   std::cout << "size_init" << light_stream.size() << std::endl;
   while (1) {
     clockid_t start, stop;
-    int nums = 3;
     double duration;
     if (_kbhit()) {
       std::cin.clear();
@@ -1776,7 +1787,7 @@ void D435::get_mean_depth() {
                   << std::endl;
       }
 
-      std::cout << "if you want to change nums" << std::endl;
+      std::cout << "if you want to change up_piles" << std::endl;
       std::cout << "please input t or f" << std::endl;
       char tmp;
       std::cin >> tmp;
@@ -1784,36 +1795,37 @@ void D435::get_mean_depth() {
         int num = 0;
         std::cout << "please in put a num" << std::endl;
         std::cin >> num;
-        nums = num;
-      }
-      std::cin.clear();
-      std::cin.ignore();
-      std::cout << "Do you want to change background ? t or f" << std::endl;
-      std::cin >> tmp;
-      if (tmp == 't') {
-        double num = 0;
-        std::cout << "please in put a num" << std::endl;
-        std::cin >> num;
-        std::cout << "num is : " << num << std::endl;
-        for (int i = 0; i < mean_depth_average.rows; i++) {
-          for (int j = 0; j < mean_depth_average.cols; j++) {
-            mean_depth_average.at<double>(i, j) += num;
+        up_pile = num;
+
+        std::cin.clear();
+        std::cin.ignore();
+        std::cout << "Do you want to change background ? t or f" << std::endl;
+        std::cin >> tmp;
+        if (tmp == 't') {
+          double num = 0;
+          std::cout << "please in put a num" << std::endl;
+          std::cin >> num;
+          std::cout << "num is : " << num << std::endl;
+          for (int i = 0; i < mean_depth_average.rows; i++) {
+            for (int j = 0; j < mean_depth_average.cols; j++) {
+              mean_depth_average.at<double>(i, j) += num;
+            }
           }
         }
-      }
-      std::cin.clear();
-      std::cin.ignore();
-      std::cout << "Do you want to save background ? t or f" << std::endl;
-      std::cin >> tmp;
-      if (tmp == 't') {
-        cv::Mat tmp = cv::Mat::zeros(Height, Width, CV_8UC1);
-        for (int i = 0; i < tmp.rows; i++) {
-          for (int j = 0; j < tmp.cols; j++) {
-            tmp.at<ushort>(i, j) =
-                static_cast<ushort>(mean_depth_average.at<double>(i, j));
+        std::cin.clear();
+        std::cin.ignore();
+        std::cout << "Do you want to save background ? t or f" << std::endl;
+        std::cin >> tmp;
+        if (tmp == 't') {
+          cv::Mat tmp = cv::Mat::zeros(Height, Width, CV_8UC1);
+          for (int i = 0; i < tmp.rows; i++) {
+            for (int j = 0; j < tmp.cols; j++) {
+              tmp.at<ushort>(i, j) =
+                  static_cast<ushort>(mean_depth_average.at<double>(i, j));
+            }
           }
+          cv::imwrite("best_background.png", mean_depth_average);
         }
-        cv::imwrite("best_background.png", mean_depth_average);
       }
     }
     start = clock();
@@ -1826,7 +1838,7 @@ void D435::get_mean_depth() {
 
     cv::imshow("display_rect", display_rect1);
     handle_depth(Get3_depth(mean_depth_average, threshold_data_tmp, 2, nums,
-                            ROI_UP, ROI_DOWN));
+                            ROI_UP, ROI_DOWN));  // 现在只处理其中上面的那一层
     stop = clock();
     duration = static_cast<double>(stop - start) / CLOCKS_PER_SEC;
     // std::cout << "consume time for handle: " << duration << "second"
@@ -1845,25 +1857,43 @@ void D435::thresholding(const std::vector<cv::Mat> &data, cv::Mat mean_depth,
   start = clock();
   // std::cout << ROI.x << " " << ROI.y << " " << ROI.height << " " << ROI.width
   //           << std::endl;
-  for (int i = ROI.y; i < ROI.height + ROI.y; i++) {
-    for (int j = ROI.x; j < ROI.width + ROI.x; j++) {
-      int count = 0;
-      for (int k = 0; k < data.size(); k++) {
-        if (data[k].at<ushort>(i, j) == 0) {
-          break;
+
+  if (h == 0) {  // 处理底下一层
+    for (int i = ROI.y; i < ROI.height + ROI.y; i++) {
+      for (int j = ROI.x; j < ROI.width + ROI.x; j++) {
+        int count = 0;
+        for (int k = 0; k < data.size(); k++) {
+          if (data[k].at<ushort>(i, j) == 0) {
+            break;
+          }
+          if (static_cast<double>(mean_depth.at<double>(i, j)) -
+                  static_cast<double>(data[k].at<ushort>(i, j)) >
+              thread_data[i] * up_to_nums[h]) {
+            count++;
+          }
         }
-        if (static_cast<double>(mean_depth.at<double>(i, j)) -
-                static_cast<double>(data[k].at<ushort>(i, j)) >
-            thread_data[i] * up_to_nums[h]) {
-          count++;
+        if (count >= nums) {
+          result.at<uchar>(i, j) = 0;
+        } else {
+          result.at<uchar>(i, j) = 255;
         }
-      }
-      if (count > nums) {
-        result.at<uchar>(i, j) = 0;
-      } else {
-        result.at<uchar>(i, j) = 255;
       }
     }
+  } else if (h == 1) {  // 处理上一层
+    for (int i = ROI.y; i < ROI.height + ROI.y; i++) {
+      for (int j = ROI.x; j < ROI.width + ROI.x; j++) {
+        if (data[1].at<ushort>(i, j) == 0) {  // 只会选择中间的那一张图片
+          continue;
+        }
+        if (static_cast<double>(mean_depth.at<double>(i, j)) -
+                static_cast<double>(data[1].at<ushort>(i, j)) >
+            thread_data[i] * up_to_nums[h] + up_pile) {
+          result.at<uchar>(i, j) = 0;
+        }
+      }
+    }
+  } else {
+    std::cout << "error have not this pile" << std::endl;
   }
 
   // if (static_cast<double>(mean_depth_average.at<ushort>(i, j)) -
