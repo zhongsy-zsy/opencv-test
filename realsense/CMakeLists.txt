@@ -23,6 +23,7 @@ ENDIF()
 add_library(${PROJECT_NAME}
  d435_driver.cc
  common_op.cc
+ move_compensation.cc
 )
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )

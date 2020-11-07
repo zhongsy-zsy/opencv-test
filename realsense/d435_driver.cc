@@ -82,7 +82,6 @@ void D435::Init() {
   std::cout << "distortion model: " << depth_intrin.model
             << std::endl;  ///畸变模型
   std::cout << RESET;
-
   run_executor_ =
       std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
 }
@@ -302,7 +301,7 @@ std::vector<cv::Mat> D435::get_depth2calculate(cv::Rect ROI) {
                   (void *)depth_frame.get_data(), cv::Mat::AUTO_STEP);
     cv::Mat display(cv::Size(Width, Height), CV_8UC3,
                     (void *)filtered_frame.get_data(), cv::Mat::AUTO_STEP);
-    depth.copyTo(depth_data);
+    if (i == 2) depth.copyTo(depth_data);
     cv::Mat color_diaplay = cv::Mat::zeros(cv::Size(Width, Height), CV_8UC3);
     cv::namedWindow("diaplay_color", CV_WINDOW_AUTOSIZE);
     cv::circle(color_diaplay, cv::Point(400, 300), 3, cv::Scalar(0, 0, 255), 3);
@@ -1399,6 +1398,8 @@ std::vector<cv::Mat> D435::Get3_depth(cv::Mat mean_depth_average,
                       nums - 1, ROI_DOWN, result_image);
     result_up.emplace_back(result_image.clone());
   }
+  save_depth(result_up, depth_data);
+
   /* 用上一层去计算 */
   std::vector<cv::Mat> to_calculate;
   cv::Rect ROI2calculate(350, 240, 200, 240);
@@ -1991,6 +1992,12 @@ void D435::HandleFeedbackData() {
   //     get_depth2calculate();
   //   }
   calibration_angle();
+  move_compensation_method1 =
+      std::make_shared<nameof_move_compensation::move_compensation>(
+          depth_intrin, ration_angle);
+  move_compensation_method2 =
+      std::make_shared<nameof_move_compensation::move_compensation_method1>();
+
   get_mean_depth();
   //   start_calibration();
   //   save_depth_image();

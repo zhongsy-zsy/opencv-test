@@ -13,6 +13,7 @@
 
 #include "GRANSAC.hpp"
 #include "PlaneModel.hpp"
+#include "move_compensation.h"
 
 const float pi = 3.1415926;
 // #define DEBUG ;
@@ -133,5 +134,9 @@ class D435 {
   float ration_angle;
   cv::Rect ROI_UP;
   cv::Rect ROI_DOWN;
+  std::shared_ptr<nameof_move_compensation::move_compensation>
+      move_compensation_method1;
+  std::shared_ptr<nameof_move_compensation::move_compensation>
+      move_compensation_method2;
 };
 #endif  // REALSENSE_D435_DRIVER_H_

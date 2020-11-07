@@ -55,4 +55,6 @@ void GetProjCueve(cv::Mat src, std::vector<float>& result_W,
                   std::vector<float>& result_H);
 std::vector<int> velocity_compensate(std::vector<cv::Mat> data);
 
+void save_depth(const std::vector<cv::Mat>& depth_datas, cv::Mat depth_data);
+
 #endif

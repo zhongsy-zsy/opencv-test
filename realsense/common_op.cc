@@ -330,3 +330,16 @@ std::vector<int> velocity_compensate(std::vector<cv::Mat> data) {
   std::cout << std::endl;
   return res;
 }
+
+/* 在制定文件下保存图片 */
+void save_depth(const std::vector<cv::Mat>& depth_datas, cv::Mat depth_data) {
+  static int times = 0;
+  std::string file_name;
+  file_name = std::string("/home/zhongsy/depth_datas/") + std::to_string(times);
+  for (int i = 0; i < depth_datas.size(); i++) {
+    cv::imwrite(file_name + "_" + std::to_string(i) + ".png", depth_datas[i]);
+  }
+
+  cv::imwrite(file_name + "raw_depth_" + ".png", depth_data);
+  times++;
+}
