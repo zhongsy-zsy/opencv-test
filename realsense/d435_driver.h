@@ -15,6 +15,8 @@
 #include "PlaneModel.hpp"
 
 const float pi = 3.1415926;
+const bool enable_depth_avoid = false;
+const bool enable_RGB_avoid = true;
 // #define DEBUG ;
 
 /* 划定标定范围 */

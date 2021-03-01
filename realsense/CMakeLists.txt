@@ -34,6 +34,8 @@ add_executable(cali calibration.cc )
 add_executable(test_visit test_visit.cc )
 add_executable(get_d435_info get_d435_info.cc )
 add_executable(moving moving_callback.cc )
+add_executable(back_project backproject.cc )
+
 
 
 # add_executable(yuzhi common_op.cc )
@@ -44,6 +46,8 @@ target_link_libraries( cali ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}
 target_link_libraries( test_visit ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
 target_link_libraries( get_d435_info ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
 target_link_libraries( moving ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
+target_link_libraries( back_project ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )
+
 
 
 # target_link_libraries( yuzhi ${PROJECT_NAME} ${OpenCV_LIBS} ${realsense2_LIBRARY}  -lpthread -lm )

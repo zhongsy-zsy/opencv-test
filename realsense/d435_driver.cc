@@ -6,6 +6,7 @@
 #include <opencv2/imgproc/types_c.h>
 
 #include <algorithm>
+
 #include <ctime>
 #include <fstream>
 #include <opencv2/core/core.hpp>
@@ -36,7 +37,7 @@ void D435::Init() {
   // spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA,0.4f);
   // spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA,4.0f);
   rs2::config cfg;
-  //   cfg.enable_stream(RS2_STREAM_COLOR, Width, Height, RS2_FORMAT_RGB8, fps);
+  cfg.enable_stream(RS2_STREAM_COLOR, Width, Height, RS2_FORMAT_RGB8, fps);
   cfg.enable_stream(RS2_STREAM_DEPTH, Width, Height, RS2_FORMAT_Z16, fps);
   //   cfg.enable_stream(RS2_STREAM_INFRARED, 1, Width, Height, RS2_FORMAT_Y8,
   //   fps); cfg.enable_stream(RS2_STREAM_INFRARED, 2, Width, Height,
@@ -82,9 +83,10 @@ void D435::Init() {
   std::cout << "distortion model: " << depth_intrin.model
             << std::endl;  ///畸变模型
   std::cout << RESET;
-
-  run_executor_ =
-      std::make_shared<std::thread>(std::bind(&D435::HandleFeedbackData, this));
+  if (enable_depth_avoid) {
+    run_executor_ = std::make_shared<std::thread>(
+        std::bind(&D435::HandleFeedbackData, this));
+  }
 }
 
 void D435::GetData(void *data) {
